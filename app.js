@@ -630,7 +630,6 @@ const App = {
         
         if (this.currentHabitIndex === maxIndex) {
             this.sessionControls.classList.add('invisible');
-            this.sessionControls.style.display = 'none'; // fully remove layout space to not push card? No wait, user wanted it not to shift. We'll use invisible to keep it taking up space.
             this.sessionControls.style.display = 'flex';
             
             const card = document.createElement('div');
@@ -642,6 +641,9 @@ const App = {
             card.addEventListener('click', () => this.openCreateView());
             this.cardContainer.appendChild(card);
             return;
+        } else {
+            this.sessionControls.classList.remove('invisible');
+            this.sessionControls.style.display = 'flex';
         }
 
         const habit = data.habits[this.currentHabitIndex];

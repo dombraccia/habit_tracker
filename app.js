@@ -762,6 +762,8 @@ const App = {
                         classes.push('cal-missed');
                     }
                 }
+            } else {
+                classes.push('cal-future');
             }
             if (dStr === todayStr) classes.push('cal-today');
 

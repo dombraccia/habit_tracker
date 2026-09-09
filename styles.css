@@ -151,9 +151,10 @@ h1, h2, h3, p, span, label, select, input, a,
 .scroll-view {
     justify-content: flex-start !important;
     overflow-y: auto;
-    max-height: 90vh;
+    height: 100vh;
+    box-sizing: border-box;
     width: 100%;
-    padding: 10px 5vw;
+    padding: 10px 5vw 80px 5vw;
 }
 .scroll-view::-webkit-scrollbar { display: none; }
 .scroll-view { -ms-overflow-style: none; scrollbar-width: none; }

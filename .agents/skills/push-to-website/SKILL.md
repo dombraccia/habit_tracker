@@ -20,4 +20,6 @@ When the user asks to push, deploy, or update the website with the latest `habit
    git commit -m "Deploy latest habit tracker updates"
    ```
 
-3. **Notify the User:** Let the user know the deployment copy was successful. Remind them they need to run `git push` manually in `~/apps/dombraccia.github.io` to publish the changes live due to GitHub authentication.
+3. **Prompt for GitHub Push:** Use the `ask_question` tool or ask the user directly if they would like you to push the updated website to GitHub. If they say yes, run `git push` in `~/apps/dombraccia.github.io`.
+
+4. **Notify the User:** Let the user know the deployment copy (and push, if requested) was successful.

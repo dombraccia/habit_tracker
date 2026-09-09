@@ -63,31 +63,31 @@
                 <button class="back-link" id="btn-back-create">← Back</button>
             </div>
 
-            <!-- Title card -->
-            <div class="habit-card auto-card" style="padding: 24px 20px !important;">
-                <h2 id="create-title" style="margin: 0; font-size: 22px;">Create New Habit</h2>
+            <!-- Habit name as tappable title -->
+            <div class="habit-card auto-card" style="padding: 20px !important; cursor: pointer;" id="create-name-card">
+                <div id="create-name-display" style="font-size: 22px; font-weight: 700; color: var(--text-primary); text-align: center; min-height: 32px; word-break: break-word;">New Habit</div>
+                <div id="create-name-hint" style="font-size: 12px; color: var(--text-tertiary); text-align: center; margin-top: 6px;">tap to rename</div>
+                <input type="text" id="habit-name" placeholder="e.g. Read 10 pages" style="display: none; text-align: center; font-size: 20px; font-weight: 700; margin-top: 4px;">
             </div>
 
-            <!-- Name + Goal Type + Frequency -->
+            <!-- Goal Type + Frequency on same row -->
             <div class="habit-card auto-card">
-                <div class="setup-group">
-                    <label for="habit-name">Habit Name</label>
-                    <input type="text" id="habit-name" placeholder="e.g. Read 10 pages">
-                </div>
-                <div class="setup-group" style="margin-top: 20px;">
-                    <label for="habit-type">Goal Type</label>
-                    <select id="habit-type">
-                        <option value="at_least">Start — build a habit</option>
-                        <option value="at_most">Stop — break a habit</option>
-                    </select>
-                </div>
-                <div class="setup-group" style="margin-top: 20px;">
-                    <label for="habit-frequency">Frequency</label>
-                    <select id="habit-frequency">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
+                <div style="display: flex; gap: 12px;">
+                    <div class="setup-group" style="flex: 1;">
+                        <label for="habit-type">Goal Type</label>
+                        <select id="habit-type">
+                            <option value="at_least">Start</option>
+                            <option value="at_most">Stop</option>
+                        </select>
+                    </div>
+                    <div class="setup-group" style="flex: 1;">
+                        <label for="habit-frequency">Frequency</label>
+                        <select id="habit-frequency">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -101,7 +101,7 @@
                         <option value="mixed">Both (Yes/No + Number)</option>
                     </select>
                 </div>
-                <div class="setup-group" style="margin-top: 20px;">
+                <div class="setup-group" style="margin-top: 14px;">
                     <label for="habit-target" id="habit-target-label">Goal / Limit</label>
                     <input type="number" id="habit-target" value="1" min="0">
                 </div>
@@ -109,12 +109,12 @@
 
             <!-- Mixed defaults — only visible when "Both" is selected -->
             <div id="mixed-defaults-group" class="habit-card auto-card hidden">
-                <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary);">Yes / No Defaults</p>
+                <p style="margin: 0 0 14px 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary);">Yes / No Defaults</p>
                 <div class="setup-group">
                     <label for="habit-default-yes">Value when "Yes" is tapped</label>
                     <input type="number" id="habit-default-yes" value="1">
                 </div>
-                <div class="setup-group" style="margin-top: 20px;">
+                <div class="setup-group" style="margin-top: 14px;">
                     <label for="habit-default-no">Value when "No" is tapped</label>
                     <input type="number" id="habit-default-no" value="0">
                 </div>
@@ -260,7 +260,7 @@
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.7.8
+                Habit Tracker v1.7.9
             </div>
         </div>
     </div>

@@ -219,7 +219,9 @@ const App = {
 
         // Create/Edit elements
         this.createView = document.getElementById('create-view');
-        this.createTitle = document.getElementById('create-title');
+        this.createNameCard = document.getElementById('create-name-card');
+        this.createNameDisplay = document.getElementById('create-name-display');
+        this.createNameHint = document.getElementById('create-name-hint');
         this.btnBackCreate = document.getElementById('btn-back-create');
         this.habitNameInput = document.getElementById('habit-name');
         this.habitTypeSelect = document.getElementById('habit-type');
@@ -292,7 +294,28 @@ const App = {
         this.btnStats.addEventListener('click', () => this.openStatsView());
         this.btnEdit.addEventListener('click', () => this.openEditView());
 
-        // Create/Edit View
+        // Create/Edit View — tappable name card
+        this.createNameCard.addEventListener('click', () => {
+            const isEditing = this.habitNameInput.style.display !== 'none';
+            if (!isEditing) {
+                this.createNameDisplay.style.display = 'none';
+                this.createNameHint.style.display = 'none';
+                this.habitNameInput.style.display = 'block';
+                this.habitNameInput.focus();
+                this.habitNameInput.select();
+            }
+        });
+        this.habitNameInput.addEventListener('blur', () => {
+            const val = this.habitNameInput.value.trim();
+            this.createNameDisplay.innerText = val || 'New Habit';
+            this.createNameDisplay.style.display = 'block';
+            this.createNameHint.style.display = 'block';
+            this.habitNameInput.style.display = 'none';
+        });
+        this.habitNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.habitNameInput.blur();
+        });
+
         this.habitTypeSelect.addEventListener('change', () => {
             if (this.habitTypeSelect.value === 'at_least') {
                 this.habitFrequencySelect.value = 'daily';
@@ -599,8 +622,11 @@ const App = {
 
     openCreateView() {
         this.editingHabitId = null;
-        this.createTitle.innerText = "Create New Habit";
+        this.createNameDisplay.innerText = 'New Habit';
+        this.createNameDisplay.style.display = 'block';
+        this.createNameHint.style.display = 'block';
         this.habitNameInput.value = '';
+        this.habitNameInput.style.display = 'none';
         this.habitTypeSelect.value = 'at_least';
         this.habitTypeSelect.dispatchEvent(new Event('change'));
         this.habitTrackingStyle.value = 'numeric';
@@ -619,8 +645,11 @@ const App = {
         const habit = habits[this.currentHabitIndex];
         this.editingHabitId = habit.id;
         
-        this.createTitle.innerText = "Edit Habit";
+        this.createNameDisplay.innerText = habit.name;
+        this.createNameDisplay.style.display = 'block';
+        this.createNameHint.style.display = 'block';
         this.habitNameInput.value = habit.name;
+        this.habitNameInput.style.display = 'none';
         this.habitTypeSelect.value = habit.targetType;
         this.habitTypeSelect.dispatchEvent(new Event('change'));
         

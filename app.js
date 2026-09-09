@@ -818,66 +818,20 @@ const App = {
         }
         
         const viewDate = this.statsDate || new Date();
-        const freq = habit.frequency || (habit.targetType === 'at_least' ? 'daily' : 'monthly');
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        const monthStr = String(month + 1).padStart(2, '0');
+        const daysInMonth = Utils.getDaysInMonth(year, month);
+        const todayStr = Utils.getTodayStr();
+
         let labels = [];
         let data = [];
-        
-        if (freq === 'daily') {
-            // Show all days of the viewed month
-            const year = viewDate.getFullYear();
-            const month = viewDate.getMonth();
-            const monthStr = String(month + 1).padStart(2, '0');
-            const daysInMonth = Utils.getDaysInMonth(year, month);
-            const todayStr = Utils.getTodayStr();
-            const lastDay = `${year}-${monthStr}-${String(daysInMonth).padStart(2, '0')}`;
-            const endDay = lastDay < todayStr ? lastDay : todayStr; // don't go past today
-            const endDate = new Date(endDay);
 
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
-                if (new Date(dStr) > endDate) break;
-                labels.push(String(d));
-                data.push(habit.tracking[dStr] !== undefined ? habit.tracking[dStr] : 0);
-            }
-        } else if (freq === 'monthly') {
-            // Show all months of the viewed year
-            const year = viewDate.getFullYear();
-            const today = new Date();
-            const lastMonth = year < today.getFullYear() ? 11 : today.getMonth();
-
-            for (let m = 0; m <= lastMonth; m++) {
-                const monthStr = String(m + 1).padStart(2, '0');
-                labels.push(monthStr);
-                let sum = 0;
-                Object.keys(habit.tracking).forEach(dateStr => {
-                    if (dateStr.startsWith(`${year}-${monthStr}`)) sum += habit.tracking[dateStr];
-                });
-                data.push(sum);
-            }
-        } else if (freq === 'weekly') {
-            // Show the week containing the first day of the viewed month
-            const year = viewDate.getFullYear();
-            const month = viewDate.getMonth();
-            // Find 4 weeks anchored around the viewed month
-            const firstOfMonth = new Date(year, month, 1);
-            let currentSum = 0;
-
-            for (let w = 0; w < 5; w++) {
-                const weekStart = new Date(firstOfMonth);
-                weekStart.setDate(1 + w * 7);
-                if (weekStart.getMonth() !== month) break;
-
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekStart.getDate() + 6);
-
-                let weekSum = 0;
-                for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
-                    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    if (habit.tracking[dateStr]) weekSum += habit.tracking[dateStr];
-                }
-                labels.push(`Wk ${w + 1}`);
-                data.push(weekSum);
-            }
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
+            if (dStr > todayStr) break; // don't go past today
+            labels.push(String(d));
+            data.push(habit.tracking[dStr] !== undefined ? habit.tracking[dStr] : 0);
         }
 
         const lineColor = habit.targetType === 'at_least' ? '#667eea' : '#ef4444';

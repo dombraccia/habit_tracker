@@ -146,6 +146,27 @@ h1, h2, h3, p, span, label, select, input, a,
     pointer-events: none;
 }
 
+.scroll-view {
+    justify-content: flex-start !important;
+    overflow-y: auto;
+    max-height: 90vh;
+    width: 100%;
+    padding: 10px 5vw;
+}
+.scroll-view::-webkit-scrollbar { display: none; }
+.scroll-view { -ms-overflow-style: none; scrollbar-width: none; }
+
+.auto-card {
+    height: auto !important;
+    aspect-ratio: auto !important;
+    width: 100% !important;
+    max-width: 400px !important;
+    margin: 0 auto 16px auto;
+    position: relative;
+    padding: 20px !important;
+    overflow-y: visible !important;
+}
+
 /* ---- Views ---- */
 
 .view {

@@ -137,6 +137,16 @@ const App = {
     init() {
         this.cacheDOM();
         this.bindEvents();
+        
+        // Load Theme
+        const savedTheme = localStorage.getItem('habit_tracker_theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+            this.updateThemeIcon(true);
+        } else {
+            this.updateThemeIcon(false);
+        }
+
         this.renderMainView();
     },
     
@@ -152,6 +162,8 @@ const App = {
         this.cardContainer = document.getElementById('card-container');
         this.sessionControls = document.getElementById('session-controls');
         this.btnSettings = document.getElementById('btn-settings');
+        this.btnThemeToggle = document.getElementById('btn-theme-toggle');
+        this.themeIcon = document.getElementById('theme-icon');
         this.btnPrev = document.getElementById('btn-prev');
         this.btnNext = document.getElementById('btn-next');
         this.btnStats = document.getElementById('btn-stats');
@@ -189,6 +201,13 @@ const App = {
     },
     
     bindEvents() {
+        // Theme toggle
+        this.btnThemeToggle.addEventListener('click', () => {
+            const isLight = document.body.classList.toggle('light-theme');
+            localStorage.setItem('habit_tracker_theme', isLight ? 'light' : 'dark');
+            this.updateThemeIcon(isLight);
+        });
+
         // Main view nav
         this.btnSettings.addEventListener('click', () => this.switchView(this.settingsView));
         this.btnPrev.addEventListener('click', () => this.navigate(-1));
@@ -339,6 +358,16 @@ const App = {
     switchView(view) {
         [this.mainView, this.createView, this.logView, this.statsView, this.settingsView].forEach(v => v.classList.add('hidden'));
         view.classList.remove('hidden');
+    },
+
+    updateThemeIcon(isLight) {
+        if (isLight) {
+            // Moon icon (switch to dark)
+            this.themeIcon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+        } else {
+            // Sun icon (switch to light)
+            this.themeIcon.innerHTML = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+        }
     },
 
     openCreateView() {

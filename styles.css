@@ -1315,8 +1315,8 @@ input:checked + .slider::before {
     border: 1px solid var(--border-light);
     border-radius: var(--r-lg);
     padding: 24px;
-    width: 420px;
-    max-width: 90vw;
+    width: 340px;
+    max-width: calc(100vw - 120px);
     aspect-ratio: 3 / 2;
     max-height: 70vh; /* Prevent overflowing off screen on small phones */
     backdrop-filter: blur(20px);

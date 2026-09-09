@@ -206,6 +206,7 @@ const App = {
         this.btnNext = document.getElementById('btn-next');
         this.btnStats = document.getElementById('btn-stats');
         this.btnEdit = document.getElementById('btn-edit');
+        this.paginationDots = document.getElementById('pagination-dots');
 
         // Create/Edit elements
         this.createView = document.getElementById('create-view');
@@ -883,6 +884,7 @@ const App = {
             `;
             card.addEventListener('click', () => this.openCreateView());
             this.cardContainer.appendChild(card);
+            this.renderPaginationDots(maxIndex + 1, this.currentHabitIndex);
             return;
         } else {
             this.sessionControls.classList.remove('invisible');
@@ -913,6 +915,22 @@ const App = {
 
         this.sessionControls.classList.remove('invisible');
         this.sessionControls.style.display = 'flex';
+        
+        this.renderPaginationDots(maxIndex + 1, this.currentHabitIndex);
+    },
+    
+    renderPaginationDots(totalPages, currentIndex) {
+        if (!this.paginationDots) return;
+        this.paginationDots.innerHTML = '';
+        
+        for (let i = 0; i < totalPages; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'pagination-dot';
+            if (i === currentIndex) {
+                dot.classList.add('active');
+            }
+            this.paginationDots.appendChild(dot);
+        }
     }
 };
 

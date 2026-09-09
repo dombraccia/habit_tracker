@@ -1445,3 +1445,26 @@ input:checked + .slider::before {
     border: 2px solid var(--accent-1);
     box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
 }
+
+#pagination-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    height: 12px;
+}
+.pagination-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--text-tertiary);
+    opacity: 0.5;
+    transition: all 0.3s var(--ease);
+}
+.pagination-dot.active {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-1);
+    opacity: 1;
+}

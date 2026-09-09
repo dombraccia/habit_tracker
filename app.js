@@ -258,6 +258,7 @@ const App = {
         this.btnImportTrigger = document.getElementById('btn-import-trigger');
         this.fileImport = document.getElementById('file-import');
         this.btnDeleteAll = document.getElementById('btn-delete-all');
+        this.btnRefreshApp = document.getElementById('btn-refresh-app');
     },
     
     bindEvents() {
@@ -453,6 +454,19 @@ const App = {
                 this.currentHabitIndex = 0;
                 this.switchView(this.mainView);
                 this.renderMainView();
+            }
+        });
+
+        this.btnRefreshApp.addEventListener('click', () => {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                    }
+                    window.location.reload(true);
+                });
+            } else {
+                window.location.reload(true);
             }
         });
 

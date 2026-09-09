@@ -28,8 +28,10 @@
 
     /* Semantic colors */
     --success: #34d399;
+    --on-success: #000000;
     --success-bg: rgba(52, 211, 153, 0.10);
     --error: #f87171;
+    --on-error: #000000;
     --error-bg: rgba(248, 113, 113, 0.10);
     --warning: #fbbf24;
     --warning-bg: rgba(251, 191, 36, 0.10);
@@ -809,6 +811,11 @@ body.light-theme {
     --accent-1: #4f46e5;
     --accent-2: #7c3aed;
     --accent-glow: rgba(79, 70, 229, 0.15);
+
+    --success: #059669;
+    --on-success: #ffffff;
+    --error: #dc2626;
+    --on-error: #ffffff;
 }
 
 /* Home Header & Gear Button */
@@ -1409,13 +1416,13 @@ input:checked + .slider::before {
 
 .cal-done {
     background: var(--success);
-    color: #000;
+    color: var(--on-success);
     font-weight: bold;
 }
 
 .cal-missed {
     background: var(--error);
-    color: #000;
+    color: var(--on-error);
     font-weight: bold;
 }
 

@@ -199,12 +199,12 @@
             <div class="habit-card auto-card">
                 <div class="settings-list">
                     <div class="settings-item">
-                        <div class="settings-item-info">
-                            <div class="settings-item-title">Update App</div>
-                            <div class="settings-item-desc">Force the app to fetch the latest updates from the web.</div>
+                        <div class="settings-info">
+                            <div class="settings-title">Update App</div>
+                            <div class="settings-desc">Fetch latest app updates</div>
                         </div>
-                        <div class="settings-item-actions" style="margin-top: 16px;">
-                            <button id="btn-refresh-app" class="primary" style="width: 100%; border-radius: var(--r-md); height: 50px; font-size: 16px;">Refresh App</button>
+                        <div class="settings-action">
+                            <button id="btn-refresh-app" class="primary" style="border-radius: var(--r-md); padding: 8px 16px; font-size: 14px;">Refresh</button>
                         </div>
                     </div>
                 </div>
@@ -215,12 +215,12 @@
             </div>
             <div class="habit-card auto-card">
                 <div class="settings-list">
-                    <div class="settings-item">
-                        <div class="settings-item-info">
-                            <div class="settings-item-title">Data Backup</div>
-                            <div class="settings-item-desc">Export your habits to a file, or restore from a backup.</div>
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="settings-info">
+                            <div class="settings-title">Data Backup</div>
+                            <div class="settings-desc">Export your habits to a file, or restore from a backup.</div>
                         </div>
-                        <div class="settings-item-actions" style="margin-top: 16px; display: flex; gap: 10px; flex-direction: column;">
+                        <div style="display: flex; gap: 10px; flex-direction: column;">
                             <button id="btn-export" class="secondary" style="width: 100%;">Export JSON</button>
                             <input type="file" id="file-import" accept=".json" class="hidden">
                             <button id="btn-import-trigger" class="secondary" style="width: 100%;">Import JSON</button>
@@ -231,12 +231,12 @@
             
             <div class="habit-card auto-card">
                 <div class="settings-list">
-                    <div class="settings-item">
-                        <div class="settings-item-info">
-                            <div class="settings-item-title" style="color: var(--error);">Danger Zone</div>
-                            <div class="settings-item-desc">Permanently erase all habits and history.</div>
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="settings-info">
+                            <div class="settings-title" style="color: var(--error);">Danger Zone</div>
+                            <div class="settings-desc">Permanently erase all habits and history.</div>
                         </div>
-                        <div class="settings-item-actions" style="margin-top: 16px;">
+                        <div>
                             <button id="btn-delete-all" class="btn-x" style="width: 100%; border-radius: var(--r-md); height: 50px; font-size: 16px;">Delete All Data</button>
                         </div>
                     </div>

@@ -146,14 +146,16 @@
             <div class="habit-card auto-card">
                 <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; text-align: center;">Mass Check-In</h3>
                 
-                <div class="setup-group" style="width: 100%; margin-bottom: 16px;">
-                    <label for="mass-start-date">Start Date</label>
-                    <input type="date" id="mass-start-date" class="date-input">
-                </div>
-                
-                <div class="setup-group" style="width: 100%; margin-bottom: 16px;">
-                    <label for="mass-end-date">End Date</label>
-                    <input type="date" id="mass-end-date" class="date-input">
+                <div style="display: flex; gap: 10px; margin-bottom: 16px; width: 100%;">
+                    <div class="setup-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="mass-start-date">Start Date</label>
+                        <input type="date" id="mass-start-date" class="date-input">
+                    </div>
+                    
+                    <div class="setup-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="mass-end-date">End Date</label>
+                        <input type="date" id="mass-end-date" class="date-input">
+                    </div>
                 </div>
 
                 <div class="setup-group" style="width: 100%; margin-bottom: 20px;">
@@ -247,7 +249,7 @@
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.7.4
+                Habit Tracker v1.7.5
             </div>
         </div>
     </div>

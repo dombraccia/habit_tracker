@@ -720,7 +720,7 @@ const App = {
             let classes = ['cal-cell'];
             
             const cellDate = new Date(dStr);
-            if (cellDate >= createdDate && cellDate <= new Date(todayStr)) {
+            if (cellDate <= new Date(todayStr)) {
                 if (habit.tracking[dStr] !== undefined) {
                     if (Utils.isDaySuccessful(habit, dStr)) {
                         classes.push('cal-done');

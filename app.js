@@ -92,11 +92,17 @@ const Utils = {
         // So a streak is from the start of the habit to today.
         // We iterate backwards from today.
         let currentStreak = 0;
-        let d = new Date(this.getTodayStr());
-        const createdDate = new Date(habit.created.split('T')[0]);
+        let d = new Date(this.getTodayStr() + 'T12:00:00');
+        let createdDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
+        
+        const trackedDates = Object.keys(habit.tracking);
+        if (trackedDates.length > 0) {
+            const earliestTracked = new Date(trackedDates.sort()[0] + 'T12:00:00');
+            if (earliestTracked < createdDate) {
+                createdDate = earliestTracked;
+            }
+        }
 
-        // Limit the loop to avoid infinite loops, max check is when habit was created
-        // Or if it's a good habit, an unlogged day breaks it.
         while (d >= createdDate) {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             
@@ -132,6 +138,7 @@ const Utils = {
 const App = {
     currentHabitIndex: 0,
     editingHabitId: null,
+    loggingHabitId: null,
     currentLogValue: 0,
     
     init() {
@@ -470,6 +477,7 @@ const App = {
         if (this.currentHabitIndex >= habits.length) return;
         
         const habit = habits[this.currentHabitIndex];
+        this.loggingHabitId = habit.id;
         this.logHabitName.innerText = habit.name;
         
         const todayStr = Utils.getTodayStr();

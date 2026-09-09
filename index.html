@@ -107,20 +107,44 @@
                 <button class="back-link" id="btn-back-log">← Back</button>
             </div>
             <div class="habit-card auto-card">
-                <h2>Log</h2>
+                <h2>Log Today</h2>
                 <div style="font-size: 16px; color: var(--text-secondary); margin-top: 10px; text-align: center;" id="log-habit-name">Habit Name</div>
             </div>
             <div class="habit-card auto-card">
-                <div class="log-controls" style="display: flex; align-items: center; justify-content: center; gap: 24px; width: 100%;">
+                <div class="log-controls" style="display: flex; align-items: center; justify-content: center; gap: 24px; width: 100%; margin-bottom: 20px;">
                     <button id="btn-log-minus" class="btn-x" style="width: 60px; height: 60px;">-</button>
                     <div id="log-value" style="font-size: 48px; font-weight: 700; width: 80px; text-align: center;">0</div>
                     <button id="btn-log-plus" class="btn-check" style="width: 60px; height: 60px;">+</button>
                 </div>
-            </div>
-            <div class="habit-card auto-card">
                 <div class="actions" style="width: 100%;">
-                    <button id="btn-save-log" class="primary" style="width: 100%;">Save</button>
+                    <button id="btn-save-log" class="primary" style="width: 100%;">Save Today</button>
                 </div>
+            </div>
+
+            <!-- Mass Check-In Card -->
+            <div class="habit-card auto-card">
+                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; text-align: center;">Mass Check-In</h3>
+                
+                <div class="setup-group" style="width: 100%; margin-bottom: 16px;">
+                    <label for="mass-start-date">Start Date</label>
+                    <input type="date" id="mass-start-date" class="date-input">
+                </div>
+                
+                <div class="setup-group" style="width: 100%; margin-bottom: 16px;">
+                    <label for="mass-end-date">End Date</label>
+                    <input type="date" id="mass-end-date" class="date-input">
+                </div>
+
+                <div class="setup-group" style="width: 100%; margin-bottom: 20px;">
+                    <label>Value to Apply</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button id="btn-mass-0" class="secondary" style="flex: 1;">0 (No)</button>
+                        <button id="btn-mass-1" class="secondary" style="flex: 1;">1 (Yes)</button>
+                    </div>
+                    <input type="number" id="mass-value" placeholder="Custom Value (e.g. 5)" min="0">
+                </div>
+
+                <button id="btn-mass-apply" class="primary" style="width: 100%;">Apply to Dates</button>
             </div>
         </div>
 

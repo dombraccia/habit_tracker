@@ -179,13 +179,21 @@ const App = {
         this.btnSaveHabit = document.getElementById('btn-save-habit');
         this.btnDeleteHabit = document.getElementById('btn-delete-habit');
         
-        // Log elements
+        // Log View elements
         this.btnBackLog = document.getElementById('btn-back-log');
         this.logHabitName = document.getElementById('log-habit-name');
         this.logValueDisplay = document.getElementById('log-value');
         this.btnLogMinus = document.getElementById('btn-log-minus');
         this.btnLogPlus = document.getElementById('btn-log-plus');
         this.btnSaveLog = document.getElementById('btn-save-log');
+        
+        // Mass check-in elements
+        this.massStartDate = document.getElementById('mass-start-date');
+        this.massEndDate = document.getElementById('mass-end-date');
+        this.massValue = document.getElementById('mass-value');
+        this.btnMass0 = document.getElementById('btn-mass-0');
+        this.btnMass1 = document.getElementById('btn-mass-1');
+        this.btnMassApply = document.getElementById('btn-mass-apply');
         
         // Stats elements
         this.btnBackStats = document.getElementById('btn-back-stats');
@@ -281,14 +289,23 @@ const App = {
         });
 
         this.btnSaveLog.addEventListener('click', () => {
-            const habits = DataManager.getData().habits;
-            if (habits.length > 0 && this.currentHabitIndex < habits.length) {
-                const currentHabit = habits[this.currentHabitIndex];
-                DataManager.trackDay(currentHabit.id, Utils.getTodayStr(), this.currentLogValue);
-                this.switchView(this.mainView);
-                this.renderMainView();
-            }
+            if (!this.loggingHabitId) return;
+            const data = DataManager.getData();
+            const habit = data.habits.find(h => h.id === this.loggingHabitId);
+            if (!habit) return;
+
+            const todayStr = Utils.getTodayStr();
+            habit.tracking[todayStr] = this.currentLogValue;
+            DataManager.saveData(data);
+            
+            this.switchView(this.mainView);
+            this.renderMainView();
         });
+
+        // Mass check-in
+        this.btnMass0.addEventListener('click', () => { this.massValue.value = 0; });
+        this.btnMass1.addEventListener('click', () => { this.massValue.value = 1; });
+        this.btnMassApply.addEventListener('click', () => this.applyMassCheckin());
 
         // Stats View
         this.btnBackStats.addEventListener('click', () => this.switchView(this.mainView));
@@ -353,6 +370,56 @@ const App = {
         const threshold = 50;
         if (touchendX < touchstartX - threshold) this.navigate(1); // swipe left = next
         if (touchendX > touchstartX + threshold) this.navigate(-1); // swipe right = prev
+    },
+
+    applyMassCheckin() {
+        if (!this.loggingHabitId) return;
+        
+        const start = this.massStartDate.value;
+        const end = this.massEndDate.value;
+        const valStr = this.massValue.value;
+        
+        if (!start || !end || valStr === "") {
+            alert("Please provide a start date, end date, and a value.");
+            return;
+        }
+
+        const value = parseInt(valStr, 10);
+        if (isNaN(value) || value < 0) {
+            alert("Value must be a valid positive number.");
+            return;
+        }
+
+        let startDate = new Date(start + 'T12:00:00');
+        let endDate = new Date(end + 'T12:00:00');
+
+        if (startDate > endDate) {
+            alert("Start date must be before or equal to end date.");
+            return;
+        }
+
+        const data = DataManager.getData();
+        const habit = data.habits.find(h => h.id === this.loggingHabitId);
+        if (!habit) return;
+
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+            
+            habit.tracking[dateStr] = value;
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        DataManager.saveData(data);
+        this.renderMainView();
+        
+        this.massStartDate.value = "";
+        this.massEndDate.value = "";
+        this.massValue.value = "";
+        this.switchView(this.mainView);
     },
 
     switchView(view) {

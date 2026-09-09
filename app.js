@@ -721,10 +721,12 @@ const App = {
             
             const cellDate = new Date(dStr);
             if (cellDate >= createdDate && cellDate <= new Date(todayStr)) {
-                if (Utils.isDaySuccessful(habit, dStr)) {
-                    classes.push('cal-done');
-                } else {
-                    classes.push('cal-missed');
+                if (habit.tracking[dStr] !== undefined) {
+                    if (Utils.isDaySuccessful(habit, dStr)) {
+                        classes.push('cal-done');
+                    } else {
+                        classes.push('cal-missed');
+                    }
                 }
             }
             if (dStr === todayStr) classes.push('cal-today');

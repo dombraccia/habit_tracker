@@ -535,8 +535,8 @@ const App = {
         const end = this.massEndDate.value;
         const valStr = this.massValue.value;
         
-        if (!start || !end || valStr === "") {
-            alert("Please provide a start date, end date, and a value.");
+        if (!start && !end) {
+            alert("Please provide at least a start or end date, and a value.");
             return;
         }
 
@@ -546,8 +546,12 @@ const App = {
             return;
         }
 
-        let startDate = new Date(start + 'T12:00:00');
-        let endDate = new Date(end + 'T12:00:00');
+        // If only one date provided, use it for both start and end (single day)
+        const resolvedStart = start || end;
+        const resolvedEnd = end || start;
+
+        let startDate = new Date(resolvedStart + 'T12:00:00');
+        let endDate = new Date(resolvedEnd + 'T12:00:00');
 
         if (startDate > endDate) {
             alert("Start date must be before or equal to end date.");

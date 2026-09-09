@@ -12,7 +12,7 @@ const DataManager = {
     saveData(data) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     },
-    addHabit(name, type, target, frequency = 'daily') {
+    addHabit(name, type, target, frequency = 'daily', trackingStyle = 'numeric', defaultYes = 1, defaultNo = 0) {
         const data = this.getData();
         const newHabit = {
             id: Date.now().toString(),
@@ -20,6 +20,9 @@ const DataManager = {
             targetType: type, // "at_least" or "at_most"
             targetValue: parseInt(target, 10),
             frequency: frequency,
+            trackingStyle: trackingStyle,
+            defaultYes: parseInt(defaultYes, 10),
+            defaultNo: parseInt(defaultNo, 10),
             created: new Date().toISOString(),
             tracking: {} // Format: "YYYY-MM-DD": numeric_value
         };
@@ -27,7 +30,7 @@ const DataManager = {
         this.saveData(data);
         return newHabit;
     },
-    updateHabit(id, name, type, target, frequency) {
+    updateHabit(id, name, type, target, frequency, trackingStyle, defaultYes, defaultNo) {
         const data = this.getData();
         const habit = data.habits.find(h => h.id === id);
         if (habit) {
@@ -35,6 +38,9 @@ const DataManager = {
             habit.targetType = type;
             habit.targetValue = parseInt(target, 10);
             if (frequency) habit.frequency = frequency;
+            if (trackingStyle) habit.trackingStyle = trackingStyle;
+            if (defaultYes !== undefined) habit.defaultYes = parseInt(defaultYes, 10);
+            if (defaultNo !== undefined) habit.defaultNo = parseInt(defaultNo, 10);
             this.saveData(data);
         }
     },
@@ -208,6 +214,10 @@ const App = {
         this.habitNameInput = document.getElementById('habit-name');
         this.habitTypeSelect = document.getElementById('habit-type');
         this.habitFrequencySelect = document.getElementById('habit-frequency');
+        this.habitTrackingStyle = document.getElementById('habit-tracking-style');
+        this.mixedDefaultsGroup = document.getElementById('mixed-defaults-group');
+        this.habitDefaultYes = document.getElementById('habit-default-yes');
+        this.habitDefaultNo = document.getElementById('habit-default-no');
         this.habitTargetInput = document.getElementById('habit-target');
         this.habitTargetLabel = document.getElementById('habit-target-label');
         this.btnSaveHabit = document.getElementById('btn-save-habit');
@@ -216,6 +226,13 @@ const App = {
         // Log View elements
         this.btnBackLog = document.getElementById('btn-back-log');
         this.logHabitName = document.getElementById('log-habit-name');
+        
+        this.logControlsBool = document.getElementById('log-controls-bool');
+        this.logControlsNumeric = document.getElementById('log-controls-numeric');
+        
+        this.btnLogYes = document.getElementById('btn-log-yes');
+        this.btnLogNo = document.getElementById('btn-log-no');
+        
         this.logValueDisplay = document.getElementById('log-value');
         this.btnLogMinus = document.getElementById('btn-log-minus');
         this.btnLogPlus = document.getElementById('btn-log-plus');
@@ -273,6 +290,14 @@ const App = {
             }
         });
 
+        this.habitTrackingStyle.addEventListener('change', () => {
+            if (this.habitTrackingStyle.value === 'mixed') {
+                this.mixedDefaultsGroup.classList.remove('hidden');
+            } else {
+                this.mixedDefaultsGroup.classList.add('hidden');
+            }
+        });
+
         this.btnBackCreate.addEventListener('click', () => {
             if (this.editingHabitId === null) {
                 // If cancelling creation, make sure we go back correctly
@@ -290,12 +315,15 @@ const App = {
             const type = this.habitTypeSelect.value;
             const target = this.habitTargetInput.value;
             const frequency = this.habitFrequencySelect.value;
+            const trackingStyle = this.habitTrackingStyle.value;
+            const defYes = this.habitDefaultYes.value;
+            const defNo = this.habitDefaultNo.value;
             
             if (name) {
                 if (this.editingHabitId) {
-                    DataManager.updateHabit(this.editingHabitId, name, type, target, frequency);
+                    DataManager.updateHabit(this.editingHabitId, name, type, target, frequency, trackingStyle, defYes, defNo);
                 } else {
-                    DataManager.addHabit(name, type, target, frequency);
+                    DataManager.addHabit(name, type, target, frequency, trackingStyle, defYes, defNo);
                     this.currentHabitIndex = DataManager.getData().habits.length - 1;
                 }
                 this.switchView(this.mainView);
@@ -316,6 +344,41 @@ const App = {
         this.btnBackLog.addEventListener('click', () => {
             this.switchView(this.mainView);
             this.renderMainView();
+        });
+
+        this.btnLogYes.addEventListener('click', () => {
+            if (!this.loggingHabitId) return;
+            const habit = DataManager.getHabit(this.loggingHabitId);
+            if (!habit) return;
+            
+            this.btnLogYes.classList.add('active');
+            this.btnLogNo.classList.remove('active');
+            this.updateLogBoolStyles();
+            
+            const defYes = habit.defaultYes !== undefined ? habit.defaultYes : 1;
+            this.currentLogValue = defYes;
+            
+            if (habit.trackingStyle === 'mixed') {
+                this.logControlsNumeric.classList.remove('hidden');
+                this.logValueDisplay.innerText = this.currentLogValue;
+            }
+        });
+
+        this.btnLogNo.addEventListener('click', () => {
+            if (!this.loggingHabitId) return;
+            const habit = DataManager.getHabit(this.loggingHabitId);
+            if (!habit) return;
+            
+            this.btnLogNo.classList.add('active');
+            this.btnLogYes.classList.remove('active');
+            this.updateLogBoolStyles();
+            
+            const defNo = habit.defaultNo !== undefined ? habit.defaultNo : 0;
+            this.currentLogValue = defNo;
+            
+            if (habit.trackingStyle === 'mixed') {
+                this.logControlsNumeric.classList.add('hidden');
+            }
         });
 
         this.btnLogMinus.addEventListener('click', () => {
@@ -492,6 +555,10 @@ const App = {
         this.habitNameInput.value = '';
         this.habitTypeSelect.value = 'at_least';
         this.habitTypeSelect.dispatchEvent(new Event('change'));
+        this.habitTrackingStyle.value = 'numeric';
+        this.habitTrackingStyle.dispatchEvent(new Event('change'));
+        this.habitDefaultYes.value = '1';
+        this.habitDefaultNo.value = '0';
         this.habitTargetInput.value = '1';
         this.btnDeleteHabit.classList.add('hidden');
         this.switchView(this.createView);
@@ -513,6 +580,13 @@ const App = {
             this.habitFrequencySelect.value = habit.frequency;
         }
         
+        const style = habit.trackingStyle || 'numeric';
+        this.habitTrackingStyle.value = style;
+        this.habitTrackingStyle.dispatchEvent(new Event('change'));
+        
+        this.habitDefaultYes.value = habit.defaultYes !== undefined ? habit.defaultYes : 1;
+        this.habitDefaultNo.value = habit.defaultNo !== undefined ? habit.defaultNo : 0;
+        
         this.habitTargetInput.value = habit.targetValue;
         this.btnDeleteHabit.classList.remove('hidden');
         
@@ -530,14 +604,63 @@ const App = {
         const todayStr = Utils.getTodayStr();
         const existingVal = habit.tracking[todayStr];
         
-        if (existingVal !== undefined) {
-            this.currentLogValue = existingVal;
-        } else {
-            this.currentLogValue = 0;
+        const style = habit.trackingStyle || 'numeric';
+        
+        // Reset UI state
+        this.logControlsBool.classList.add('hidden');
+        this.logControlsNumeric.classList.add('hidden');
+        this.btnLogYes.classList.remove('active');
+        this.btnLogNo.classList.remove('active');
+        this.btnLogYes.style.opacity = '1';
+        this.btnLogNo.style.opacity = '1';
+
+        if (style === 'bool') {
+            this.logControlsBool.classList.remove('hidden');
+            if (existingVal !== undefined) {
+                this.currentLogValue = existingVal;
+                if (existingVal > 0) this.btnLogYes.classList.add('active');
+                else this.btnLogNo.classList.add('active');
+            } else {
+                this.currentLogValue = 0; // Default undefined state is not selected, but default value 0
+            }
+        } else if (style === 'numeric') {
+            this.logControlsNumeric.classList.remove('hidden');
+            this.currentLogValue = existingVal !== undefined ? existingVal : 0;
+            this.logValueDisplay.innerText = this.currentLogValue;
+        } else if (style === 'mixed') {
+            this.logControlsBool.classList.remove('hidden');
+            if (existingVal !== undefined) {
+                this.currentLogValue = existingVal;
+                // Try to infer if it was Yes or No based on default values or > 0
+                const defNo = habit.defaultNo !== undefined ? habit.defaultNo : 0;
+                if (existingVal === defNo) {
+                    this.btnLogNo.classList.add('active');
+                } else {
+                    this.btnLogYes.classList.add('active');
+                    this.logControlsNumeric.classList.remove('hidden');
+                }
+            } else {
+                this.currentLogValue = 0; // Will be overridden when they click
+            }
+            this.logValueDisplay.innerText = this.currentLogValue;
         }
         
-        this.logValueDisplay.innerText = this.currentLogValue;
+        this.updateLogBoolStyles();
+        
         this.switchView(this.logView);
+    },
+
+    updateLogBoolStyles() {
+        const isYesActive = this.btnLogYes.classList.contains('active');
+        const isNoActive = this.btnLogNo.classList.contains('active');
+        
+        if (!isYesActive && !isNoActive) {
+            this.btnLogYes.style.opacity = '1';
+            this.btnLogNo.style.opacity = '1';
+        } else {
+            this.btnLogYes.style.opacity = isYesActive ? '1' : '0.4';
+            this.btnLogNo.style.opacity = isNoActive ? '1' : '0.4';
+        }
     },
 
     openStatsView() {
@@ -548,7 +671,13 @@ const App = {
         this.statsHabitName.innerText = habit.name;
         
         this.statsCalendarContainer.innerHTML = this.renderCalendar(habit);
-        this.statsGraphContainer.innerHTML = this.renderGraph(habit);
+        
+        if (habit.trackingStyle === 'bool') {
+            this.statsGraphContainer.classList.add('hidden');
+        } else {
+            this.statsGraphContainer.classList.remove('hidden');
+            this.statsGraphContainer.innerHTML = this.renderGraph(habit);
+        }
         
         this.switchView(this.statsView);
     },

@@ -1431,3 +1431,8 @@ input:checked + .slider::before {
 .cal-today {
     border: 2px solid var(--accent-1);
 }
+
+#log-controls-bool .active {
+    border: 2px solid var(--accent-1);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}

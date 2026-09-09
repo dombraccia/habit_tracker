@@ -137,7 +137,16 @@ const Utils = {
         while (d >= createdDate) {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             
-            if (this.isDaySuccessful(habit, dateStr)) {
+            let success = false;
+            if (habit.targetType === 'at_most') {
+                // For stop habits, a streak is purely days where you logged 0 or didn't log.
+                const val = habit.tracking[dateStr] || 0;
+                success = (val === 0);
+            } else {
+                success = this.isDaySuccessful(habit, dateStr);
+            }
+            
+            if (success) {
                 currentStreak++;
                 d.setDate(d.getDate() - 1);
             } else {

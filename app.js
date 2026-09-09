@@ -12,13 +12,14 @@ const DataManager = {
     saveData(data) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     },
-    addHabit(name, type, target) {
+    addHabit(name, type, target, frequency = 'daily') {
         const data = this.getData();
         const newHabit = {
             id: Date.now().toString(),
             name: name,
             targetType: type, // "at_least" or "at_most"
             targetValue: parseInt(target, 10),
+            frequency: frequency,
             created: new Date().toISOString(),
             tracking: {} // Format: "YYYY-MM-DD": numeric_value
         };
@@ -26,13 +27,14 @@ const DataManager = {
         this.saveData(data);
         return newHabit;
     },
-    updateHabit(id, name, type, target) {
+    updateHabit(id, name, type, target, frequency) {
         const data = this.getData();
         const habit = data.habits.find(h => h.id === id);
         if (habit) {
             habit.name = name;
             habit.targetType = type;
             habit.targetValue = parseInt(target, 10);
+            if (frequency) habit.frequency = frequency;
             this.saveData(data);
         }
     },
@@ -71,17 +73,40 @@ const Utils = {
         return dates;
     },
     isDaySuccessful(habit, dateStr) {
-        if (habit.targetType === 'at_least') {
-            const val = habit.tracking[dateStr] !== undefined ? habit.tracking[dateStr] : 0;
-            return val >= habit.targetValue;
-        } else {
-            // at_most: evaluate as a monthly limit
-            const [year, month, day] = dateStr.split('-');
-            let sum = 0;
+        const freq = habit.frequency || (habit.targetType === 'at_least' ? 'daily' : 'monthly');
+        const [year, month, day] = dateStr.split('-');
+        
+        let sum = 0;
+        
+        if (freq === 'daily') {
+            sum = habit.tracking[dateStr] || 0;
+        } else if (freq === 'monthly') {
             for (let i = 1; i <= parseInt(day, 10); i++) {
                 const d = `${year}-${month}-${String(i).padStart(2, '0')}`;
                 if (habit.tracking[d]) sum += habit.tracking[d];
             }
+        } else if (freq === 'weekly') {
+            const currDate = new Date(dateStr + 'T12:00:00');
+            const dayOfWeek = currDate.getDay(); // 0 is Sunday
+            const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            
+            const startOfWeek = new Date(currDate);
+            startOfWeek.setDate(currDate.getDate() - diffToMonday);
+            
+            let dIter = new Date(startOfWeek);
+            while (dIter <= currDate) {
+                const y = dIter.getFullYear();
+                const m = String(dIter.getMonth() + 1).padStart(2, '0');
+                const d = String(dIter.getDate()).padStart(2, '0');
+                const checkStr = `${y}-${m}-${d}`;
+                if (habit.tracking[checkStr]) sum += habit.tracking[checkStr];
+                dIter.setDate(dIter.getDate() + 1);
+            }
+        }
+
+        if (habit.targetType === 'at_least') {
+            return sum >= habit.targetValue;
+        } else {
             return sum <= habit.targetValue;
         }
     },
@@ -177,10 +202,12 @@ const App = {
         this.btnEdit = document.getElementById('btn-edit');
 
         // Create/Edit elements
-        this.btnBackCreate = document.getElementById('btn-back-create');
+        this.createView = document.getElementById('create-view');
         this.createTitle = document.getElementById('create-title');
+        this.btnBackCreate = document.getElementById('btn-back-create');
         this.habitNameInput = document.getElementById('habit-name');
         this.habitTypeSelect = document.getElementById('habit-type');
+        this.habitFrequencySelect = document.getElementById('habit-frequency');
         this.habitTargetInput = document.getElementById('habit-target');
         this.habitTargetLabel = document.getElementById('habit-target-label');
         this.btnSaveHabit = document.getElementById('btn-save-habit');
@@ -236,9 +263,13 @@ const App = {
         // Create/Edit View
         this.habitTypeSelect.addEventListener('change', () => {
             if (this.habitTypeSelect.value === 'at_least') {
-                this.habitTargetLabel.innerText = "Daily Target Value";
+                this.habitFrequencySelect.value = 'daily';
+                this.habitTargetLabel.innerText = "Goal";
+                if (this.editingHabitId === null) this.habitTargetInput.value = '1';
             } else {
-                this.habitTargetLabel.innerText = "Monthly Limit";
+                this.habitFrequencySelect.value = 'monthly';
+                this.habitTargetLabel.innerText = "Limit";
+                if (this.editingHabitId === null) this.habitTargetInput.value = '10';
             }
         });
 
@@ -258,12 +289,13 @@ const App = {
             const name = this.habitNameInput.value.trim();
             const type = this.habitTypeSelect.value;
             const target = this.habitTargetInput.value;
+            const frequency = this.habitFrequencySelect.value;
             
             if (name) {
                 if (this.editingHabitId) {
-                    DataManager.updateHabit(this.editingHabitId, name, type, target);
+                    DataManager.updateHabit(this.editingHabitId, name, type, target, frequency);
                 } else {
-                    DataManager.addHabit(name, type, target);
+                    DataManager.addHabit(name, type, target, frequency);
                     this.currentHabitIndex = DataManager.getData().habits.length - 1;
                 }
                 this.switchView(this.mainView);
@@ -476,6 +508,11 @@ const App = {
         this.habitNameInput.value = habit.name;
         this.habitTypeSelect.value = habit.targetType;
         this.habitTypeSelect.dispatchEvent(new Event('change'));
+        
+        if (habit.frequency) {
+            this.habitFrequencySelect.value = habit.frequency;
+        }
+        
         this.habitTargetInput.value = habit.targetValue;
         this.btnDeleteHabit.classList.remove('hidden');
         
@@ -557,8 +594,9 @@ const App = {
     renderGraph(habit) {
         const w = 100; // Percentage based width for viewBox
         const h = 100;
+        const freq = habit.frequency || (habit.targetType === 'at_least' ? 'daily' : 'monthly');
 
-        if (habit.targetType === 'at_least') {
+        if (freq === 'daily') {
             const daysCount = 30;
             const pastDates = Utils.getPastDates(daysCount);
             
@@ -575,16 +613,18 @@ const App = {
                 points += `${x},${y} `;
             }
 
+            const strokeColor = habit.targetType === 'at_least' ? 'var(--accent-1)' : 'var(--error)';
+
             return `
                 <div style="text-align: center; font-size: 12px; margin-bottom: 5px; color: var(--text-secondary);">Daily Inputs (Last 30 Days)</div>
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
-                    <polyline points="${points}" fill="none" stroke="var(--accent-1)" stroke-width="2" />
+                    <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="2" />
                     <line x1="0" y1="${h - ((habit.targetValue / maxVal) * h)}" x2="100" y2="${h - ((habit.targetValue / maxVal) * h)}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="2,2" />
                 </svg>
                 <div style="position: absolute; top: 15px; left: -25px; font-size: 10px; color: var(--text-secondary);">${maxVal}</div>
                 <div style="position: absolute; bottom: -5px; left: -15px; font-size: 10px; color: var(--text-secondary);">0</div>
             `;
-        } else {
+        } else if (freq === 'monthly') {
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -611,10 +651,52 @@ const App = {
                 points += `${x},${y} `;
             }
 
+            const strokeColor = habit.targetType === 'at_least' ? 'var(--accent-1)' : 'var(--error)';
+
             return `
                 <div style="text-align: center; font-size: 12px; margin-bottom: 5px; color: var(--text-secondary);">Cumulative Month Total</div>
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
-                    <polyline points="${points}" fill="none" stroke="var(--error)" stroke-width="2" />
+                    <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="2" />
+                    <line x1="0" y1="${h - ((habit.targetValue / maxVal) * h)}" x2="100" y2="${h - ((habit.targetValue / maxVal) * h)}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="2,2" />
+                </svg>
+                <div style="position: absolute; top: 15px; left: -25px; font-size: 10px; color: var(--text-secondary);">${maxVal}</div>
+                <div style="position: absolute; bottom: -5px; left: -15px; font-size: 10px; color: var(--text-secondary);">0</div>
+            `;
+        } else if (freq === 'weekly') {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            
+            let cumulativeValues = [];
+            let currentSum = 0;
+            
+            // Loop from Monday to Today
+            for (let i = diffToMonday; i >= 0; i--) {
+                const dIter = new Date(today);
+                dIter.setDate(today.getDate() - i);
+                const dateStr = `${dIter.getFullYear()}-${String(dIter.getMonth() + 1).padStart(2, '0')}-${String(dIter.getDate()).padStart(2, '0')}`;
+                
+                if (habit.tracking[dateStr]) {
+                    currentSum += habit.tracking[dateStr];
+                }
+                cumulativeValues.push(currentSum);
+            }
+
+            const maxVal = Math.max(...cumulativeValues, habit.targetValue, 1);
+            let points = "";
+            
+            for(let i=0; i<cumulativeValues.length; i++) {
+                const x = (i / 6) * w; // Scale across 7 days
+                const y = h - ((cumulativeValues[i] / maxVal) * h);
+                points += `${x},${y} `;
+            }
+
+            const strokeColor = habit.targetType === 'at_least' ? 'var(--accent-1)' : 'var(--error)';
+
+            return `
+                <div style="text-align: center; font-size: 12px; margin-bottom: 5px; color: var(--text-secondary);">Cumulative Week Total</div>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
+                    <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="2" />
                     <line x1="0" y1="${h - ((habit.targetValue / maxVal) * h)}" x2="100" y2="${h - ((habit.targetValue / maxVal) * h)}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="2,2" />
                 </svg>
                 <div style="position: absolute; top: 15px; left: -25px; font-size: 10px; color: var(--text-secondary);">${maxVal}</div>

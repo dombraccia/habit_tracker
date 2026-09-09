@@ -251,7 +251,11 @@ const App = {
         this.btnBackStats = document.getElementById('btn-back-stats');
         this.statsHabitName = document.getElementById('stats-habit-name');
         this.statsCalendarContainer = document.getElementById('stats-calendar-container');
+        this.btnStatsPrevMonth = document.getElementById('btn-stats-prev-month');
+        this.btnStatsNextMonth = document.getElementById('btn-stats-next-month');
+        this.statsMonthLabel = document.getElementById('stats-month-label');
         this.statsGraphContainer = document.getElementById('stats-graph-container');
+        this.statsChartCanvas = document.getElementById('stats-chart');
 
         // Settings elements
         this.btnBackSettings = document.getElementById('btn-back-settings');
@@ -413,7 +417,23 @@ const App = {
         this.btnMassApply.addEventListener('click', () => this.applyMassCheckin());
 
         // Stats View
-        this.btnBackStats.addEventListener('click', () => this.switchView(this.mainView));
+        this.btnBackStats.addEventListener('click', () => {
+            if (this.chartInstance) {
+                this.chartInstance.destroy();
+                this.chartInstance = null;
+            }
+            this.switchView(this.mainView);
+        });
+        
+        this.btnStatsPrevMonth.addEventListener('click', () => {
+            this.statsDate.setMonth(this.statsDate.getMonth() - 1);
+            this.updateStatsCalendar();
+        });
+        
+        this.btnStatsNextMonth.addEventListener('click', () => {
+            this.statsDate.setMonth(this.statsDate.getMonth() + 1);
+            this.updateStatsCalendar();
+        });
 
         // Settings
         this.btnBackSettings.addEventListener('click', () => this.switchView(this.mainView));
@@ -685,22 +705,29 @@ const App = {
         const habit = habits[this.currentHabitIndex];
         this.statsHabitName.innerText = habit.name;
         
-        this.statsCalendarContainer.innerHTML = this.renderCalendar(habit);
+        this.statsDate = new Date(); // Start at current month
+        this.updateStatsCalendar();
         
         if (habit.trackingStyle === 'bool') {
             this.statsGraphContainer.classList.add('hidden');
         } else {
             this.statsGraphContainer.classList.remove('hidden');
-            this.statsGraphContainer.innerHTML = this.renderGraph(habit);
+            this.renderGraph(habit);
         }
         
         this.switchView(this.statsView);
     },
 
-    renderCalendar(habit) {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
+    updateStatsCalendar() {
+        const habits = DataManager.getData().habits;
+        const habit = habits[this.currentHabitIndex];
+        
+        const year = this.statsDate.getFullYear();
+        const month = this.statsDate.getMonth();
+        
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        this.statsMonthLabel.innerText = `${monthNames[month]} ${year}`;
+        
         const daysInMonth = Utils.getDaysInMonth(year, month);
         const firstDay = Utils.getFirstDayOfMonth(year, month);
         const todayStr = Utils.getTodayStr();
@@ -712,8 +739,6 @@ const App = {
         for (let i = 0; i < firstDay; i++) {
             html += `<div class="cal-cell empty"></div>`;
         }
-
-        const createdDate = new Date(habit.created.split('T')[0]);
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -734,42 +759,24 @@ const App = {
             html += `<div class="${classes.join(' ')}">${day}</div>`;
         }
         html += `</div>`;
-        return html;
+        
+        this.statsCalendarContainer.innerHTML = html;
     },
 
     renderGraph(habit) {
-        const w = 100; // Percentage based width for viewBox
-        const h = 100;
+        if (this.chartInstance) {
+            this.chartInstance.destroy();
+        }
+        
         const freq = habit.frequency || (habit.targetType === 'at_least' ? 'daily' : 'monthly');
-
+        let labels = [];
+        let data = [];
+        
         if (freq === 'daily') {
             const daysCount = 30;
             const pastDates = Utils.getPastDates(daysCount);
-            
-            const values = pastDates.map(dateStr => {
-                return habit.tracking[dateStr] !== undefined ? habit.tracking[dateStr] : 0;
-            });
-
-            const maxVal = Math.max(...values, habit.targetValue, 1);
-            let points = "";
-            
-            for(let i=0; i<values.length; i++) {
-                const x = (i / (daysCount - 1)) * w;
-                const y = h - ((values[i] / maxVal) * h);
-                points += `${x},${y} `;
-            }
-
-            const strokeColor = habit.targetType === 'at_least' ? 'var(--accent-1)' : 'var(--error)';
-
-            return `
-                <div style="text-align: center; font-size: 12px; margin-bottom: 5px; color: var(--text-secondary);">Daily Inputs (Last 30 Days)</div>
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
-                    <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="2" />
-                    <line x1="0" y1="${h - ((habit.targetValue / maxVal) * h)}" x2="100" y2="${h - ((habit.targetValue / maxVal) * h)}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="2,2" />
-                </svg>
-                <div style="position: absolute; top: 15px; left: -25px; font-size: 10px; color: var(--text-secondary);">${maxVal}</div>
-                <div style="position: absolute; bottom: -5px; left: -15px; font-size: 10px; color: var(--text-secondary);">0</div>
-            `;
+            labels = pastDates.map(d => d.substring(5)); // MM-DD
+            data = pastDates.map(dateStr => habit.tracking[dateStr] !== undefined ? habit.tracking[dateStr] : 0);
         } else if (freq === 'monthly') {
             const today = new Date();
             const year = today.getFullYear();
@@ -781,40 +788,20 @@ const App = {
             let currentSum = 0;
             
             for (let i = 1; i <= currentDay; i++) {
+                labels.push(String(i));
                 const dateStr = `${year}-${month}-${String(i).padStart(2, '0')}`;
                 if (habit.tracking[dateStr]) {
                     currentSum += habit.tracking[dateStr];
                 }
-                cumulativeValues.push(currentSum);
+                data.push(currentSum);
             }
-
-            const maxVal = Math.max(...cumulativeValues, habit.targetValue, 1);
-            let points = "";
-            
-            for(let i=0; i<cumulativeValues.length; i++) {
-                const x = (i / (daysInMonth - 1)) * w; // Scale so the graph spans the entire month width
-                const y = h - ((cumulativeValues[i] / maxVal) * h);
-                points += `${x},${y} `;
-            }
-
-            const strokeColor = habit.targetType === 'at_least' ? 'var(--accent-1)' : 'var(--error)';
-
-            return `
-                <div style="text-align: center; font-size: 12px; margin-bottom: 5px; color: var(--text-secondary);">Cumulative Month Total</div>
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
-                    <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="2" />
-                    <line x1="0" y1="${h - ((habit.targetValue / maxVal) * h)}" x2="100" y2="${h - ((habit.targetValue / maxVal) * h)}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="2,2" />
-                </svg>
-                <div style="position: absolute; top: 15px; left: -25px; font-size: 10px; color: var(--text-secondary);">${maxVal}</div>
-                <div style="position: absolute; bottom: -5px; left: -15px; font-size: 10px; color: var(--text-secondary);">0</div>
-            `;
         } else if (freq === 'weekly') {
             const today = new Date();
             const dayOfWeek = today.getDay();
             const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
             
-            let cumulativeValues = [];
             let currentSum = 0;
+            const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             
             // Loop from Monday to Today
             for (let i = diffToMonday; i >= 0; i--) {
@@ -822,33 +809,64 @@ const App = {
                 dIter.setDate(today.getDate() - i);
                 const dateStr = `${dIter.getFullYear()}-${String(dIter.getMonth() + 1).padStart(2, '0')}-${String(dIter.getDate()).padStart(2, '0')}`;
                 
+                labels.push(`${dIter.getMonth() + 1}/${dIter.getDate()}`);
+                
                 if (habit.tracking[dateStr]) {
                     currentSum += habit.tracking[dateStr];
                 }
-                cumulativeValues.push(currentSum);
+                data.push(currentSum);
             }
-
-            const maxVal = Math.max(...cumulativeValues, habit.targetValue, 1);
-            let points = "";
-            
-            for(let i=0; i<cumulativeValues.length; i++) {
-                const x = (i / 6) * w; // Scale across 7 days
-                const y = h - ((cumulativeValues[i] / maxVal) * h);
-                points += `${x},${y} `;
-            }
-
-            const strokeColor = habit.targetType === 'at_least' ? 'var(--accent-1)' : 'var(--error)';
-
-            return `
-                <div style="text-align: center; font-size: 12px; margin-bottom: 5px; color: var(--text-secondary);">Cumulative Week Total</div>
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
-                    <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="2" />
-                    <line x1="0" y1="${h - ((habit.targetValue / maxVal) * h)}" x2="100" y2="${h - ((habit.targetValue / maxVal) * h)}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="2,2" />
-                </svg>
-                <div style="position: absolute; top: 15px; left: -25px; font-size: 10px; color: var(--text-secondary);">${maxVal}</div>
-                <div style="position: absolute; bottom: -5px; left: -15px; font-size: 10px; color: var(--text-secondary);">0</div>
-            `;
         }
+
+        const lineColor = habit.targetType === 'at_least' ? '#667eea' : '#ef4444';
+        
+        const ctx = this.statsChartCanvas.getContext('2d');
+        this.chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: habit.name,
+                    data: data,
+                    borderColor: lineColor,
+                    backgroundColor: lineColor + '33', // 20% opacity
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    pointBackgroundColor: lineColor
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            maxTicksLimit: 6
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
     },
 
     renderMainView() {

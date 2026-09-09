@@ -1,9 +1,10 @@
-const CACHE_NAME = 'habittracker-v16';
+const CACHE_NAME = 'habittracker-v17';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
     './app.js',
+    './chart.min.js',
     './manifest.json',
     './icon-512.png'
 ];

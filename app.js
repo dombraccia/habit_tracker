@@ -213,6 +213,7 @@ const App = {
         this.btnExport = document.getElementById('btn-export');
         this.btnImportTrigger = document.getElementById('btn-import-trigger');
         this.fileImport = document.getElementById('file-import');
+        this.btnDeleteAll = document.getElementById('btn-delete-all');
     },
     
     bindEvents() {
@@ -348,6 +349,15 @@ const App = {
                     }
                 };
                 reader.readAsText(file);
+            }
+        });
+
+        this.btnDeleteAll.addEventListener('click', () => {
+            if (confirm("Are you sure you want to delete the cached data? unless you have it saved somewhere locally, it can not be recovered")) {
+                DataManager.saveData({ habits: [] });
+                this.currentHabitIndex = 0;
+                this.switchView(this.mainView);
+                this.renderMainView();
             }
         });
 

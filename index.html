@@ -191,6 +191,17 @@
                 <h2>Stats</h2>
                 <div style="font-size: 16px; color: var(--text-secondary); margin-top: 10px; text-align: center;" id="stats-habit-name">Habit Name</div>
             </div>
+
+            <!-- SUMMARY CARD -->
+            <div class="habit-card auto-card" id="stats-summary-card">
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 16px; color: var(--text-primary); font-weight: 500;">
+                    <div>🔥 Current Streak: <span id="summary-current-streak" style="float: right;">0</span></div>
+                    <div>⭐ Best Streak: <span id="summary-best-streak" style="float: right;">0</span></div>
+                    <div>📈 Monthly Average: <span id="summary-monthly-avg" style="float: right;">0.0</span></div>
+                    <div>🔙 Last Month: <span id="summary-last-month" style="float: right;">0</span></div>
+                </div>
+            </div>
+
             <div class="habit-card auto-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; width: 100%;">
                     <button id="btn-stats-prev-month" class="secondary" style="padding: 4px 12px; font-size: 16px; border-radius: var(--r-sm);">&lt;</button>
@@ -201,10 +212,18 @@
                     <!-- Calendar injected here -->
                 </div>
             </div>
-            <div class="habit-card auto-card">
-                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; text-align: center;">Trend</h3>
+
+            <div class="habit-card auto-card stats-plot-card">
+                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; text-align: center;" id="stats-line-title">Trend</h3>
                 <div id="stats-graph-container" style="width: 100%; height: 180px; position: relative;">
                     <canvas id="stats-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="habit-card auto-card stats-plot-card">
+                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; text-align: center;">Volume</h3>
+                <div id="stats-bar-container" style="width: 100%; height: 180px; position: relative;">
+                    <canvas id="stats-bar-chart"></canvas>
                 </div>
             </div>
         </div>
@@ -259,7 +278,7 @@
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.8.3
+                Habit Tracker v1.8.4
             </div>
         </div>
     </div>

@@ -166,6 +166,45 @@ const Utils = {
 
         return { years, months, days, total: currentStreak };
     },
+    calculateBestStreak(habit) {
+        if (!habit) return 0;
+        let bestStreak = 0;
+        let currentStreak = 0;
+        let d = new Date(this.getTodayStr() + 'T12:00:00');
+        let createdDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
+        
+        const trackedDates = Object.keys(habit.tracking);
+        if (trackedDates.length > 0) {
+            const earliestTracked = new Date(trackedDates.sort()[0] + 'T12:00:00');
+            if (earliestTracked < createdDate) {
+                createdDate = earliestTracked;
+            }
+        }
+        
+        let iterDate = new Date(createdDate);
+        while (iterDate <= d) {
+            const dateStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
+            let success = false;
+            if (habit.targetType === 'at_most') {
+                const val = habit.tracking[dateStr] || 0;
+                success = (val === 0);
+            } else {
+                success = this.isDaySuccessful(habit, dateStr);
+            }
+
+            if (success) {
+                currentStreak++;
+                if (currentStreak > bestStreak) {
+                    bestStreak = currentStreak;
+                }
+            } else {
+                currentStreak = 0;
+            }
+            iterDate.setDate(iterDate.getDate() + 1);
+        }
+        
+        return bestStreak;
+    },
     getDaysInMonth(year, month) {
         return new Date(year, month + 1, 0).getDate();
     },
@@ -267,6 +306,16 @@ const App = {
         this.statsMonthLabel = document.getElementById('stats-month-label');
         this.statsGraphContainer = document.getElementById('stats-graph-container');
         this.statsChartCanvas = document.getElementById('stats-chart');
+        this.statsBarCanvas = document.getElementById('stats-bar-chart');
+        this.statsBarContainer = document.getElementById('stats-bar-container');
+        this.statsLineTitle = document.getElementById('stats-line-title');
+        
+        // Summary Card elements
+        this.summaryCurrentStreak = document.getElementById('summary-current-streak');
+        this.summaryBestStreak = document.getElementById('summary-best-streak');
+        this.summaryMonthlyAvg = document.getElementById('summary-monthly-avg');
+        this.summaryLastMonth = document.getElementById('summary-last-month');
+        this.statsPlotCards = document.querySelectorAll('.stats-plot-card');
 
         // Settings elements
         this.btnBackSettings = document.getElementById('btn-back-settings');
@@ -773,14 +822,45 @@ const App = {
         const habit = habits[this.currentHabitIndex];
         this.statsHabitName.innerText = habit.name;
         
+        // Populate Summary Card
+        const streakData = Utils.calculateStreak(habit);
+        this.summaryCurrentStreak.innerText = streakData.total;
+        this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
+        
+        // Calculate Monthly Avg & Last Month
+        let lastMonthSum = 0;
+        let totalSum = 0;
+        let monthsTracked = new Set();
+        
+        const today = new Date();
+        const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lmYear = lastMonthDate.getFullYear();
+        const lmMonthStr = String(lastMonthDate.getMonth() + 1).padStart(2, '0');
+        const lmPrefix = `${lmYear}-${lmMonthStr}`;
+
+        Object.keys(habit.tracking).forEach(dateStr => {
+            const val = habit.tracking[dateStr];
+            if (val > 0) {
+                totalSum += val;
+                monthsTracked.add(dateStr.substring(0, 7)); // YYYY-MM
+                if (dateStr.startsWith(lmPrefix)) {
+                    lastMonthSum += val;
+                }
+            }
+        });
+        
+        this.summaryLastMonth.innerText = lastMonthSum;
+        const avg = monthsTracked.size > 0 ? (totalSum / monthsTracked.size) : 0;
+        this.summaryMonthlyAvg.innerText = avg.toFixed(1);
+
         this.statsDate = new Date(); // Start at current month
         this.updateStatsCalendar();
         
         if (habit.trackingStyle === 'bool') {
-            this.statsGraphContainer.classList.add('hidden');
+            this.statsPlotCards.forEach(card => card.classList.add('hidden'));
         } else {
-            this.statsGraphContainer.classList.remove('hidden');
-            this.renderGraph(habit);
+            this.statsPlotCards.forEach(card => card.classList.remove('hidden'));
+            // updateStatsCalendar already calls renderGraph
         }
         
         this.switchView(this.statsView);
@@ -842,6 +922,9 @@ const App = {
         if (this.chartInstance) {
             this.chartInstance.destroy();
         }
+        if (this.barChartInstance) {
+            this.barChartInstance.destroy();
+        }
         
         const viewDate = this.statsDate || new Date();
         const year = viewDate.getFullYear();
@@ -851,32 +934,98 @@ const App = {
         const todayStr = Utils.getTodayStr();
 
         let labels = [];
-        let data = [];
+        let dailyData = [];
+        let cumulativeData = [];
+        let limitData = [];
+        
+        let runningSum = 0;
 
         for (let d = 1; d <= daysInMonth; d++) {
             const dStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
             if (dStr > todayStr) break; // don't go past today
+            
+            const val = habit.tracking[dStr] !== undefined ? habit.tracking[dStr] : 0;
+            runningSum += val;
+            
             labels.push(String(d));
-            data.push(habit.tracking[dStr] !== undefined ? habit.tracking[dStr] : 0);
+            dailyData.push(val);
+            cumulativeData.push(runningSum);
+            
+            if (habit.targetType === 'at_most') {
+                limitData.push(habit.targetValue);
+            }
         }
 
         const lineColor = habit.targetType === 'at_least' ? '#667eea' : '#ef4444';
         
-        const ctx = this.statsChartCanvas.getContext('2d');
-        this.chartInstance = new Chart(ctx, {
+        const lineDatasets = [{
+            label: 'Cumulative',
+            data: cumulativeData,
+            borderColor: lineColor,
+            backgroundColor: lineColor + '33', // 20% opacity
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointBackgroundColor: lineColor
+        }];
+        
+        if (habit.targetType === 'at_most') {
+            lineDatasets.push({
+                label: 'Limit',
+                data: limitData,
+                borderColor: '#ef4444',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false
+            });
+        }
+        
+        const tickConfig = {
+            color: 'rgba(255, 255, 255, 0.6)',
+            callback: function(value) {
+                if (Math.floor(value) === value) {
+                    return value;
+                }
+            }
+        };
+
+        const ctxLine = this.statsChartCanvas.getContext('2d');
+        this.chartInstance = new Chart(ctxLine, {
             type: 'line',
             data: {
                 labels: labels,
+                datasets: lineDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: tickConfig
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255, 255, 255, 0.6)', maxTicksLimit: 6 }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        
+        const ctxBar = this.statsBarCanvas.getContext('2d');
+        this.barChartInstance = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: labels,
                 datasets: [{
-                    label: habit.name,
-                    data: data,
-                    borderColor: lineColor,
-                    backgroundColor: lineColor + '33', // 20% opacity
-                    fill: true,
-                    tension: 0.3,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    pointBackgroundColor: lineColor
+                    label: 'Daily Volume',
+                    data: dailyData,
+                    backgroundColor: lineColor,
+                    borderRadius: 2
                 }]
             },
             options: {
@@ -885,28 +1034,15 @@ const App = {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.6)'
-                        }
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: tickConfig
                     },
                     x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            maxTicksLimit: 6
-                        }
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255, 255, 255, 0.6)', maxTicksLimit: 6 }
                     }
                 },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+                plugins: { legend: { display: false } }
             }
         });
     },

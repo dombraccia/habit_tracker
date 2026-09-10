@@ -457,7 +457,7 @@ const App = {
             
             if (habit.trackingStyle === 'mixed') {
                 this.logControlsNumeric.classList.remove('hidden');
-                this.logValueDisplay.innerText = this.currentLogValue;
+                this.logValueDisplay.value = this.currentLogValue;
             }
         });
 
@@ -491,13 +491,19 @@ const App = {
         this.btnLogMinus.addEventListener('click', () => {
             if (this.currentLogValue === undefined) this.currentLogValue = 0;
             this.currentLogValue = Math.max(0, this.currentLogValue - 1);
-            this.logValueDisplay.innerText = this.currentLogValue;
+            this.logValueDisplay.value = this.currentLogValue;
         });
 
         this.btnLogPlus.addEventListener('click', () => {
             if (this.currentLogValue === undefined) this.currentLogValue = 0;
             this.currentLogValue++;
-            this.logValueDisplay.innerText = this.currentLogValue;
+            this.logValueDisplay.value = this.currentLogValue;
+        });
+
+        this.logValueDisplay.addEventListener('input', () => {
+            let val = parseInt(this.logValueDisplay.value, 10);
+            if (isNaN(val) || val < 0) val = 0;
+            this.currentLogValue = val;
         });
 
         this.btnSaveLog.addEventListener('click', () => {
@@ -778,7 +784,7 @@ const App = {
         } else if (style === 'numeric') {
             this.logControlsNumeric.classList.remove('hidden');
             this.currentLogValue = existingVal !== undefined ? existingVal : 0;
-            this.logValueDisplay.innerText = this.currentLogValue;
+            this.logValueDisplay.value = this.currentLogValue;
         } else if (style === 'mixed') {
             this.logControlsBool.classList.remove('hidden');
             if (existingVal !== undefined) {
@@ -794,7 +800,7 @@ const App = {
             } else {
                 this.currentLogValue = 0; // Will be overridden when they click
             }
-            this.logValueDisplay.innerText = this.currentLogValue;
+            this.logValueDisplay.value = this.currentLogValue;
         }
         
         this.updateLogBoolStyles();

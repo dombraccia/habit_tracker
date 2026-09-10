@@ -389,6 +389,16 @@ const App = {
             const habit = DataManager.getHabit(this.loggingHabitId);
             if (!habit) return;
             
+            if (this.btnLogYes.classList.contains('active')) {
+                this.btnLogYes.classList.remove('active');
+                this.updateLogBoolStyles();
+                this.currentLogValue = undefined;
+                if (habit.trackingStyle === 'mixed') {
+                    this.logControlsNumeric.classList.add('hidden');
+                }
+                return;
+            }
+            
             this.btnLogYes.classList.add('active');
             this.btnLogNo.classList.remove('active');
             this.updateLogBoolStyles();
@@ -407,6 +417,16 @@ const App = {
             const habit = DataManager.getHabit(this.loggingHabitId);
             if (!habit) return;
             
+            if (this.btnLogNo.classList.contains('active')) {
+                this.btnLogNo.classList.remove('active');
+                this.updateLogBoolStyles();
+                this.currentLogValue = undefined;
+                if (habit.trackingStyle === 'mixed') {
+                    this.logControlsNumeric.classList.add('hidden');
+                }
+                return;
+            }
+            
             this.btnLogNo.classList.add('active');
             this.btnLogYes.classList.remove('active');
             this.updateLogBoolStyles();
@@ -420,11 +440,13 @@ const App = {
         });
 
         this.btnLogMinus.addEventListener('click', () => {
+            if (this.currentLogValue === undefined) this.currentLogValue = 0;
             this.currentLogValue = Math.max(0, this.currentLogValue - 1);
             this.logValueDisplay.innerText = this.currentLogValue;
         });
 
         this.btnLogPlus.addEventListener('click', () => {
+            if (this.currentLogValue === undefined) this.currentLogValue = 0;
             this.currentLogValue++;
             this.logValueDisplay.innerText = this.currentLogValue;
         });
@@ -436,7 +458,11 @@ const App = {
             if (!habit) return;
 
             const todayStr = Utils.getTodayStr();
-            habit.tracking[todayStr] = this.currentLogValue;
+            if (this.currentLogValue === undefined) {
+                delete habit.tracking[todayStr];
+            } else {
+                habit.tracking[todayStr] = this.currentLogValue;
+            }
             DataManager.saveData(data);
             
             this.switchView(this.mainView);

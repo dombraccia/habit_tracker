@@ -324,6 +324,13 @@ const App = {
         this.fileImport = document.getElementById('file-import');
         this.btnDeleteAll = document.getElementById('btn-delete-all');
         this.btnRefreshApp = document.getElementById('btn-refresh-app');
+        
+        // Re-order elements
+        this.cardReorderTrigger = document.getElementById('card-reorder-trigger');
+        this.cardReorderContainer = document.getElementById('card-reorder-container');
+        this.reorderList = document.getElementById('reorder-list');
+        this.btnReorderCancel = document.getElementById('btn-reorder-cancel');
+        this.btnReorderSave = document.getElementById('btn-reorder-save');
     },
     
     bindEvents() {
@@ -589,6 +596,69 @@ const App = {
                 this.switchView(this.mainView);
                 this.renderMainView();
             }
+        });
+
+        // Re-order flow
+        this.reorderOrderMap = {}; // Maps habit id -> new order index
+        this.reorderCurrentCount = 0;
+
+        this.cardReorderTrigger.addEventListener('click', () => {
+            const data = DataManager.getData();
+            if (data.habits.length === 0) return;
+            
+            this.reorderOrderMap = {};
+            this.reorderCurrentCount = 0;
+            this.reorderList.innerHTML = '';
+            
+            data.habits.forEach((habit) => {
+                const item = document.createElement('div');
+                item.className = 'reorder-item';
+                item.style = 'display: flex; align-items: center; justify-content: flex-start; padding: 12px; background: var(--surface); border-radius: var(--r-sm); cursor: pointer;';
+                
+                const orderDiv = document.createElement('div');
+                orderDiv.style = 'font-size: 16px; font-weight: bold; color: var(--text-secondary); width: 24px; text-align: left; pointer-events: none; margin-right: 12px;';
+                orderDiv.innerText = '';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.style = 'font-size: 16px; color: var(--text-primary); pointer-events: none;';
+                nameDiv.innerText = habit.name;
+                
+                item.appendChild(orderDiv);
+                item.appendChild(nameDiv);
+                
+                item.addEventListener('click', () => {
+                    if (this.reorderOrderMap[habit.id] !== undefined) return; // already ordered
+                    this.reorderCurrentCount++;
+                    this.reorderOrderMap[habit.id] = this.reorderCurrentCount;
+                    orderDiv.innerText = this.reorderCurrentCount;
+                    orderDiv.style.color = '#fff';
+                    item.style.background = 'var(--surface-hover)';
+                });
+                
+                this.reorderList.appendChild(item);
+            });
+            
+            this.cardReorderContainer.classList.remove('hidden');
+        });
+        
+        this.btnReorderCancel.addEventListener('click', () => {
+            this.cardReorderContainer.classList.add('hidden');
+        });
+        
+        this.btnReorderSave.addEventListener('click', () => {
+            const data = DataManager.getData();
+            if (this.reorderCurrentCount < data.habits.length) {
+                alert('Please assign an order to all habits by tapping them.');
+                return;
+            }
+            
+            // Sort by the new order
+            data.habits.sort((a, b) => this.reorderOrderMap[a.id] - this.reorderOrderMap[b.id]);
+            DataManager.saveData(data);
+            this.currentHabitIndex = 0; // reset
+            this.renderMainView();
+            
+            this.cardReorderContainer.classList.add('hidden');
         });
 
         this.btnRefreshApp.addEventListener('click', () => {

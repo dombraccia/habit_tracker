@@ -248,6 +248,20 @@
                     </div>
                 </div>
             </div>
+            <div class="habit-card auto-card" id="card-reorder-trigger" style="cursor: pointer;">
+                <div style="font-size: 16px; font-weight: 600; text-align: center; color: var(--text-primary);">Re-order Habit cards</div>
+            </div>
+
+            <div class="habit-card auto-card hidden" id="card-reorder-container">
+                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; text-align: center;">Tap in desired order</h3>
+                <div id="reorder-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <!-- Injected via JS -->
+                </div>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button id="btn-reorder-cancel" class="secondary" style="flex: 1;">Cancel</button>
+                    <button id="btn-reorder-save" class="primary" style="flex: 1;">Save</button>
+                </div>
+            </div>
             <div class="habit-card auto-card">
                 <div class="settings-list">
                     <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -278,7 +292,7 @@
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.8.5
+                Habit Tracker v1.8.6
             </div>
         </div>
     </div>

@@ -914,19 +914,18 @@ const App = {
         const lmMonthStr = String(lastMonthDate.getMonth() + 1).padStart(2, '0');
         const lmPrefix = `${lmYear}-${lmMonthStr}`;
 
-        Object.keys(habit.tracking).forEach(dateStr => {
+        const trackingKeys = Object.keys(habit.tracking);
+        trackingKeys.forEach(dateStr => {
             const val = habit.tracking[dateStr];
-            if (val > 0) {
-                totalSum += val;
-                monthsTracked.add(dateStr.substring(0, 7)); // YYYY-MM
-                if (dateStr.startsWith(lmPrefix)) {
-                    lastMonthSum += val;
-                }
+            totalSum += val;
+            if (dateStr.startsWith(lmPrefix)) {
+                lastMonthSum += val;
             }
         });
         
         this.summaryLastMonth.innerText = lastMonthSum;
-        const avg = monthsTracked.size > 0 ? (totalSum / monthsTracked.size) : 0;
+        const daysLogged = trackingKeys.length;
+        const avg = daysLogged > 0 ? (totalSum * 30 / daysLogged) : 0;
         this.summaryMonthlyAvg.innerText = avg.toFixed(1);
 
         this.statsDate = new Date(); // Start at current month

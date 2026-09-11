@@ -1016,8 +1016,27 @@ const App = {
             }
 
             if (cellDate <= todayDate) {
-                if (habit.tracking[dStr] !== undefined) {
-                    if (Utils.isDaySuccessful(habit, dStr)) {
+                let isSuccess = false;
+                const val = habit.tracking[dStr];
+                
+                if (val !== undefined) {
+                    if (habit.targetType === 'at_least') {
+                        // For building habits: green if they did it (or met daily target if it's daily)
+                        if (habit.frequency === 'daily') {
+                            isSuccess = val >= habit.targetValue;
+                        } else {
+                            isSuccess = val > 0;
+                        }
+                    } else {
+                        // For stop habits: green if they logged 0 (or met daily target if daily)
+                        if (habit.frequency === 'daily') {
+                            isSuccess = val <= habit.targetValue;
+                        } else {
+                            isSuccess = val === 0;
+                        }
+                    }
+                    
+                    if (isSuccess) {
                         classes.push('cal-done');
                     } else {
                         classes.push('cal-missed');

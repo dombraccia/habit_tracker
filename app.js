@@ -935,9 +935,7 @@ const App = {
             }
         }
 
-        this.summaryCurrentStreak.innerHTML = formatNumber(streakData.total);
-        this.summaryBestStreak.innerHTML = formatNumber(Utils.calculateBestStreak(habit));
-        
+
         // Calculate Monthly Avg & Last Month
         let lastMonthSum = 0;
         let totalSum = 0;
@@ -966,6 +964,9 @@ const App = {
         const valLast = document.getElementById('summary-last-month');
         
         if (habit.trackingStyle === 'bool') {
+            this.summaryCurrentStreak.innerText = streakData.total;
+            this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
+            
             lblAvg.innerText = '📈 Success Rate:';
             // Last month label stays the same, we just format the value
             
@@ -1024,6 +1025,9 @@ const App = {
             }
             
         } else {
+            this.summaryCurrentStreak.innerHTML = formatNumber(streakData.total);
+            this.summaryBestStreak.innerHTML = formatNumber(Utils.calculateBestStreak(habit));
+
             lblAvg.innerText = '📈 N per month:';
             valAvg.style.fontVariantNumeric = 'tabular-nums';
             valLast.style.fontVariantNumeric = 'tabular-nums';

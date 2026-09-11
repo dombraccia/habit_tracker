@@ -1396,7 +1396,7 @@ input:checked + .slider::before {
 }
 
 .habit-title {
-    font-size: 48px;
+    font-size: 24px;
     font-weight: 700;
     text-align: center;
 }

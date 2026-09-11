@@ -1092,12 +1092,31 @@ const App = {
         const axisColor = isLightMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)';
         const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
 
-        const tickConfig = {
+        function getStepSize(maxVal) {
+            if (maxVal <= 5) return 1;
+            if (maxVal <= 25) return 5;
+            if (maxVal <= 59) return 10;
+            if (maxVal <= 100) return 25;
+            if (maxVal <= 500) return 100;
+            return 500;
+        }
+
+        const maxLineVal = Math.max(...cumulativeData, ...limitData, 0);
+        const maxBarVal = Math.max(...dailyData, 0);
+
+        const tickConfigLine = {
             color: axisColor,
+            stepSize: getStepSize(maxLineVal),
             callback: function(value) {
-                if (Math.floor(value) === value) {
-                    return value;
-                }
+                if (Math.floor(value) === value) return value;
+            }
+        };
+
+        const tickConfigBar = {
+            color: axisColor,
+            stepSize: getStepSize(maxBarVal),
+            callback: function(value) {
+                if (Math.floor(value) === value) return value;
             }
         };
 
@@ -1115,7 +1134,7 @@ const App = {
                     y: {
                         beginAtZero: true,
                         grid: { color: gridColor },
-                        ticks: tickConfig
+                        ticks: tickConfigLine
                     },
                     x: {
                         grid: { display: false },
@@ -1145,7 +1164,7 @@ const App = {
                     y: {
                         beginAtZero: true,
                         grid: { color: gridColor },
-                        ticks: tickConfig
+                        ticks: tickConfigBar
                     },
                     x: {
                         grid: { display: false },

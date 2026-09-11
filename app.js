@@ -324,6 +324,9 @@ const App = {
         this.fileImport = document.getElementById('file-import');
         this.btnDeleteAll = document.getElementById('btn-delete-all');
         this.btnRefreshApp = document.getElementById('btn-refresh-app');
+        this.driveWebhookUrl = document.getElementById('drive-webhook-url');
+        this.btnDriveRestore = document.getElementById('btn-drive-restore');
+        this.btnDriveBackup = document.getElementById('btn-drive-backup');
         
         // Re-order elements
         this.cardReorderTrigger = document.getElementById('card-reorder-trigger');
@@ -605,6 +608,70 @@ const App = {
                 };
                 reader.readAsText(file);
             }
+        });
+
+        // Google Drive Sync
+        const savedUrl = localStorage.getItem('habit_tracker_webhook_url');
+        if (savedUrl) this.driveWebhookUrl.value = savedUrl;
+
+        this.driveWebhookUrl.addEventListener('blur', () => {
+            localStorage.setItem('habit_tracker_webhook_url', this.driveWebhookUrl.value.trim());
+        });
+
+        this.btnDriveBackup.addEventListener('click', async () => {
+            const url = this.driveWebhookUrl.value.trim();
+            if (!url) return alert("Please enter the Apps Script Webhook URL.");
+            
+            const originalText = this.btnDriveBackup.innerText;
+            this.btnDriveBackup.innerText = "Saving...";
+            try {
+                const data = DataManager.getData();
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // text/plain to avoid CORS preflight issues on Apps Script
+                });
+                
+                if (res.ok) {
+                    alert("Backed up successfully to Google Drive!");
+                } else {
+                    alert("Error backing up: " + res.statusText);
+                }
+            } catch (err) {
+                alert("Error connecting to webhook. (Ensure it's deployed to 'Anyone'.)");
+                console.error(err);
+            }
+            this.btnDriveBackup.innerText = originalText;
+        });
+
+        this.btnDriveRestore.addEventListener('click', async () => {
+            const url = this.driveWebhookUrl.value.trim();
+            if (!url) return alert("Please enter the Apps Script Webhook URL.");
+            
+            if (!confirm("This will overwrite your current local data with the backup from Drive. Are you sure?")) return;
+
+            const originalText = this.btnDriveRestore.innerText;
+            this.btnDriveRestore.innerText = "Loading...";
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.habits) {
+                        DataManager.saveData(data);
+                        this.currentHabitIndex = 0;
+                        this.renderMainView();
+                        alert("Data restored successfully!");
+                    } else {
+                        alert("Backup file was empty or invalid.");
+                    }
+                } else {
+                    alert("Error downloading backup: " + res.statusText);
+                }
+            } catch (err) {
+                alert("Error connecting to webhook.");
+                console.error(err);
+            }
+            this.btnDriveRestore.innerText = originalText;
         });
 
         this.btnDeleteAll.addEventListener('click', () => {

@@ -274,6 +274,22 @@
                     <button id="btn-reorder-save" class="primary" style="flex: 1;">Save</button>
                 </div>
             </div>
+            
+            <div class="habit-card auto-card">
+                <div class="settings-list">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="settings-info">
+                            <div class="settings-title">Google Drive Sync</div>
+                            <div class="settings-desc">Backup to Drive via Apps Script Webhook.</div>
+                        </div>
+                        <input type="text" id="drive-webhook-url" placeholder="Paste Webhook URL here..." style="font-size: 14px; padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); width: 100%; box-sizing: border-box;">
+                        <div style="display: flex; gap: 10px; width: 100%;">
+                            <button id="btn-drive-restore" class="secondary" style="flex: 1;">Download</button>
+                            <button id="btn-drive-backup" class="primary" style="flex: 1;">Backup</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="habit-card auto-card">
                 <div class="settings-list">
                     <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -304,7 +320,7 @@
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.8.13
+                Habit Tracker v1.8.14
             </div>
         </div>
     </div>

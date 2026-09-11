@@ -1089,7 +1089,7 @@ const App = {
             this.summaryCurrentStreak.innerText = streakData.total;
             this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
             
-            lblAvg.innerText = '📈 Success Rate:';
+            lblAvg.innerText = '📈 % Success:';
             // Last month label stays the same, we just format the value
             
             let startDate = new Date(habit.created.split('T')[0] + 'T12:00:00');

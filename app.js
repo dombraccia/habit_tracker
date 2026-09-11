@@ -697,6 +697,11 @@ const App = {
         this.reorderCurrentCount = 0;
 
         this.cardReorderTrigger.addEventListener('click', () => {
+            if (!this.cardReorderContainer.classList.contains('hidden')) {
+                this.cardReorderContainer.classList.add('hidden');
+                return;
+            }
+
             const data = DataManager.getData();
             if (data.habits.length === 0) return;
             

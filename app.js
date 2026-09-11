@@ -971,11 +971,18 @@ const App = {
 
         this.logControlsBool.classList.add('hidden');
         this.logControlsNumeric.classList.add('hidden');
-        this.btnLogYes.classList.remove('active');
-        this.btnLogNo.classList.remove('active');
+        this.btnLogYes.classList.remove('active', 'btn-check', 'btn-x');
+        this.btnLogNo.classList.remove('active', 'btn-check', 'btn-x');
         this.btnLogYes.style.opacity = '1';
         this.btnLogNo.style.opacity = '1';
 
+        if (habit.targetType === 'at_most') {
+            this.btnLogYes.classList.add('btn-x');
+            this.btnLogNo.classList.add('btn-check');
+        } else {
+            this.btnLogYes.classList.add('btn-check');
+            this.btnLogNo.classList.add('btn-x');
+        }
         if (style === 'bool') {
             this.logControlsBool.classList.remove('hidden');
             if (existingVal !== undefined) {

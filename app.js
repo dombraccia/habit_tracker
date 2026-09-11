@@ -536,6 +536,18 @@ const App = {
         this.btnMass1.addEventListener('click', () => { this.massValue.value = 1; });
         this.btnMassApply.addEventListener('click', () => this.applyMassCheckin());
 
+        this.massStartDate.addEventListener('change', () => {
+            if (this.massStartDate.value && !this.massEndDate.value) {
+                this.massEndDate.value = this.massStartDate.value;
+            }
+        });
+        
+        this.massEndDate.addEventListener('change', () => {
+            if (this.massEndDate.value && !this.massStartDate.value) {
+                this.massStartDate.value = this.massEndDate.value;
+            }
+        });
+
         // Stats View
         this.btnBackStats.addEventListener('click', () => {
             if (this.chartInstance) {
@@ -967,14 +979,29 @@ const App = {
             const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             let classes = ['cal-cell'];
             
-            const cellDate = new Date(dStr);
-            if (cellDate <= new Date(todayStr)) {
+            const cellDate = new Date(dStr + 'T12:00:00');
+            const todayDate = new Date(todayStr + 'T12:00:00');
+            
+            // Determine start date to not color days before habit existed
+            let startDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
+            const trackedDates = Object.keys(habit.tracking);
+            if (trackedDates.length > 0) {
+                const earliestTracked = new Date(trackedDates.sort()[0] + 'T12:00:00');
+                if (earliestTracked < startDate) {
+                    startDate = earliestTracked;
+                }
+            }
+
+            if (cellDate <= todayDate) {
                 if (habit.tracking[dStr] !== undefined) {
                     if (Utils.isDaySuccessful(habit, dStr)) {
                         classes.push('cal-done');
                     } else {
                         classes.push('cal-missed');
                     }
+                } else if (habit.targetType === 'at_most' && cellDate >= startDate) {
+                    // For stop habits, an unlogged day after creation is a success (0 value)
+                    classes.push('cal-done');
                 }
             } else {
                 classes.push('cal-future');

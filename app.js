@@ -1053,16 +1053,6 @@ const App = {
         
         // Populate Summary Card
         const streakData = Utils.calculateStreak(habit);
-        
-        function formatNumber(num) {
-            let n = Number(num);
-            if (n % 1 === 0) {
-                return `<span style="display: inline-block; width: 40px; text-align: right;">${n}</span><span style="display: inline-block; width: 24px; text-align: left;"></span>`;
-            } else {
-                const parts = n.toFixed(1).split('.');
-                return `<span style="display: inline-block; width: 40px; text-align: right;">${parts[0]}</span><span style="display: inline-block; width: 24px; text-align: left;">.${parts[1]}</span>`;
-            }
-        }
 
 
         // Calculate Monthly Avg & Last Month
@@ -1154,20 +1144,20 @@ const App = {
             }
             
         } else {
-            this.summaryCurrentStreak.innerHTML = formatNumber(streakData.total);
-            this.summaryBestStreak.innerHTML = formatNumber(Utils.calculateBestStreak(habit));
+            this.summaryCurrentStreak.innerText = streakData.total;
+            this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
 
             lblAvg.innerText = '📈 N per month:';
             valAvg.style.fontVariantNumeric = 'tabular-nums';
             valLast.style.fontVariantNumeric = 'tabular-nums';
             
-            valLast.innerHTML = formatNumber(lastMonthSum);
+            valLast.innerText = lastMonthSum;
             const daysLogged = trackingKeys.length;
             if (daysLogged >= 15) {
-                const avg = (totalSum * 30 / daysLogged);
-                valAvg.innerHTML = formatNumber(avg);
+                const monthlyAvg = (totalSum / daysLogged) * 30;
+                valAvg.innerText = monthlyAvg % 1 === 0 ? monthlyAvg.toString() : monthlyAvg.toFixed(1);
             } else {
-                valAvg.innerHTML = `<span style="display: inline-block; width: 40px; text-align: right;">--</span><span style="display: inline-block; width: 24px; text-align: left;"></span>`;
+                valAvg.innerText = '--';
             }
         }
 

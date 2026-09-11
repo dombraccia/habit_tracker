@@ -83,13 +83,20 @@ const Utils = {
         const [year, month, day] = dateStr.split('-');
         
         let sum = 0;
+        let hasLog = false;
         
         if (freq === 'daily') {
-            sum = habit.tracking[dateStr] || 0;
+            if (habit.tracking[dateStr] !== undefined) {
+                hasLog = true;
+                sum = habit.tracking[dateStr];
+            }
         } else if (freq === 'monthly') {
             for (let i = 1; i <= parseInt(day, 10); i++) {
                 const d = `${year}-${month}-${String(i).padStart(2, '0')}`;
-                if (habit.tracking[d]) sum += habit.tracking[d];
+                if (habit.tracking[d] !== undefined) {
+                    sum += habit.tracking[d];
+                    hasLog = true;
+                }
             }
         } else if (freq === 'weekly') {
             const currDate = new Date(dateStr + 'T12:00:00');
@@ -105,10 +112,15 @@ const Utils = {
                 const m = String(dIter.getMonth() + 1).padStart(2, '0');
                 const d = String(dIter.getDate()).padStart(2, '0');
                 const checkStr = `${y}-${m}-${d}`;
-                if (habit.tracking[checkStr]) sum += habit.tracking[checkStr];
+                if (habit.tracking[checkStr] !== undefined) {
+                    sum += habit.tracking[checkStr];
+                    hasLog = true;
+                }
                 dIter.setDate(dIter.getDate() + 1);
             }
         }
+
+        if (!hasLog) return false;
 
         if (habit.targetType === 'at_least') {
             return sum >= habit.targetValue;
@@ -1104,8 +1116,6 @@ const App = {
                 
                 if (val !== undefined) {
                     isSuccess = (habit.targetType === 'at_least') ? (val > 0) : (val === 0);
-                } else {
-                    isSuccess = (habit.targetType === 'at_most');
                 }
                 
                 boolTotalDays++;
@@ -1235,9 +1245,6 @@ const App = {
                     } else {
                         classes.push('cal-missed');
                     }
-                } else if (habit.targetType === 'at_most' && cellDate >= startDate) {
-                    // For stop habits, an unlogged day after creation is a success (0 value)
-                    classes.push('cal-done');
                 }
             } else {
                 classes.push('cal-future');

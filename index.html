@@ -244,8 +244,8 @@
             <div style="width: 100%; max-width: 400px; margin: 0 auto 10px auto; text-align: left;">
                 <button class="back-link" id="btn-back-settings">← Back</button>
             </div>
-            <div class="habit-card auto-card">
-                <h2>Settings</h2>
+            <div style="max-width: 400px; width: 100%; margin: 0 auto 20px auto; padding: 24px; box-sizing: border-box; text-align: center;">
+                <h2 style="font-size: 33px; margin: 0;">Settings</h2>
             </div>
             <div class="habit-card auto-card">
                 <div class="settings-list">
@@ -279,21 +279,6 @@
                 <div class="settings-list">
                     <div style="display: flex; flex-direction: column; gap: 16px;">
                         <div class="settings-info">
-                            <div class="settings-title">Google Drive Sync</div>
-                            <div class="settings-desc">Backup to Drive via Apps Script Webhook.</div>
-                        </div>
-                        <input type="text" id="drive-webhook-url" placeholder="Paste Webhook URL here..." style="font-size: 14px; padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); width: 100%; box-sizing: border-box;">
-                        <div style="display: flex; gap: 10px; width: 100%;">
-                            <button id="btn-drive-restore" class="secondary" style="flex: 1;">Download</button>
-                            <button id="btn-drive-backup" class="primary" style="flex: 1;">Backup</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="habit-card auto-card">
-                <div class="settings-list">
-                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                        <div class="settings-info">
                             <div class="settings-title">Data Backup</div>
                             <div class="settings-desc">Export your habits to a file, or restore from a backup.</div>
                         </div>
@@ -311,16 +296,28 @@
                     <div style="display: flex; flex-direction: column; gap: 16px;">
                         <div class="settings-info">
                             <div class="settings-title" style="color: var(--error);">Danger Zone</div>
-                            <div class="settings-desc">Permanently erase all habits and history.</div>
+                            <div class="settings-desc">Manage external sync and local data erasure.</div>
                         </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Google Drive Sync</div>
+                            <input type="text" id="drive-webhook-url" placeholder="Paste Webhook URL here..." style="font-size: 14px; padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); width: 100%; box-sizing: border-box;">
+                            <div style="display: flex; gap: 10px; width: 100%;">
+                                <button id="btn-drive-restore" class="secondary" style="flex: 1;">Download</button>
+                                <button id="btn-drive-backup" class="primary" style="flex: 1;">Backup</button>
+                            </div>
+                        </div>
+
+                        <div style="height: 1px; background: var(--border); margin: 8px 0;"></div>
+
                         <div>
-                            <button id="btn-delete-all" class="btn-x" style="width: 100%; border-radius: var(--r-md); height: 50px; font-size: 16px;">Delete All Data</button>
+                            <button id="btn-delete-all" class="btn-x" style="width: 100%; border-radius: var(--r-md); height: 50px; font-size: 16px;">Delete Local Data</button>
                         </div>
                     </div>
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.8.14
+                Habit Tracker v1.8.15
             </div>
         </div>
     </div>

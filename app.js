@@ -941,9 +941,11 @@ const App = {
         // Calculate Monthly Avg & Last Month
         let lastMonthSum = 0;
         let totalSum = 0;
-        let monthsTracked = new Set();
         
         const today = new Date();
+        const todayStr = Utils.getTodayStr();
+        const todayDate = new Date(todayStr + 'T12:00:00');
+        
         const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const lmYear = lastMonthDate.getFullYear();
         const lmMonthStr = String(lastMonthDate.getMonth() + 1).padStart(2, '0');
@@ -958,13 +960,82 @@ const App = {
             }
         });
         
-        this.summaryLastMonth.innerHTML = formatNumber(lastMonthSum);
-        const daysLogged = trackingKeys.length;
-        if (daysLogged >= 15) {
-            const avg = (totalSum * 30 / daysLogged);
-            this.summaryMonthlyAvg.innerHTML = formatNumber(avg);
+        const lblAvg = document.getElementById('summary-avg-label');
+        const lblLast = document.getElementById('summary-last-label');
+        const valAvg = document.getElementById('summary-monthly-avg');
+        const valLast = document.getElementById('summary-last-month');
+        
+        if (habit.trackingStyle === 'bool') {
+            lblAvg.innerText = '📈 Success Rate:';
+            // Last month label stays the same, we just format the value
+            
+            let startDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
+            if (trackingKeys.length > 0) {
+                const earliestTracked = new Date(trackingKeys.sort()[0] + 'T12:00:00');
+                if (earliestTracked < startDate) startDate = earliestTracked;
+            }
+            
+            let boolTotalDays = 0;
+            let boolTotalSuccess = 0;
+            let boolLmDays = 0;
+            let boolLmSuccess = 0;
+            
+            let dIter = new Date(startDate);
+            while (dIter <= todayDate) {
+                const y = dIter.getFullYear();
+                const m = String(dIter.getMonth() + 1).padStart(2, '0');
+                const d = String(dIter.getDate()).padStart(2, '0');
+                const dStr = `${y}-${m}-${d}`;
+                
+                const val = habit.tracking[dStr];
+                let isSuccess = false;
+                
+                if (val !== undefined) {
+                    isSuccess = (habit.targetType === 'at_least') ? (val > 0) : (val === 0);
+                } else {
+                    isSuccess = (habit.targetType === 'at_most');
+                }
+                
+                boolTotalDays++;
+                if (isSuccess) boolTotalSuccess++;
+                
+                if (dStr.startsWith(lmPrefix)) {
+                    boolLmDays++;
+                    if (isSuccess) boolLmSuccess++;
+                }
+                
+                dIter.setDate(dIter.getDate() + 1);
+            }
+            
+            if (boolTotalDays >= 15) {
+                const rate = (boolTotalSuccess / boolTotalDays * 100).toFixed(0);
+                valAvg.innerText = `${rate}%`;
+                valAvg.style.fontVariantNumeric = 'normal'; // override tabular for %
+            } else {
+                valAvg.innerText = '--';
+            }
+            
+            if (boolLmDays > 0) {
+                const lmRate = (boolLmSuccess / boolLmDays * 100).toFixed(0);
+                valLast.innerText = `${lmRate}% (${boolLmSuccess}/${boolLmDays})`;
+                valLast.style.fontVariantNumeric = 'normal';
+            } else {
+                valLast.innerText = '--';
+            }
+            
         } else {
-            this.summaryMonthlyAvg.innerHTML = `<span style="display: inline-block; width: 40px; text-align: right;">--</span><span style="display: inline-block; width: 24px; text-align: left;"></span>`;
+            lblAvg.innerText = '📈 N per month:';
+            valAvg.style.fontVariantNumeric = 'tabular-nums';
+            valLast.style.fontVariantNumeric = 'tabular-nums';
+            
+            valLast.innerHTML = formatNumber(lastMonthSum);
+            const daysLogged = trackingKeys.length;
+            if (daysLogged >= 15) {
+                const avg = (totalSum * 30 / daysLogged);
+                valAvg.innerHTML = formatNumber(avg);
+            } else {
+                valAvg.innerHTML = `<span style="display: inline-block; width: 40px; text-align: right;">--</span><span style="display: inline-block; width: 24px; text-align: left;"></span>`;
+            }
         }
 
         this.statsDate = new Date(); // Start at current month

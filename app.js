@@ -446,8 +446,14 @@ const App = {
         
         // Log View
         this.btnBackLog.addEventListener('click', () => {
-            this.switchView(this.mainView);
-            this.renderMainView();
+            const returnView = this.logViewReturnView || this.mainView;
+            this.switchView(returnView);
+            if (returnView === this.mainView) {
+                this.renderMainView();
+            } else if (returnView === this.statsView) {
+                this.updateStatsCalendar();
+            }
+            this.logViewReturnView = null; // Reset
         });
 
         this.btnLogYes.addEventListener('click', () => {
@@ -537,16 +543,24 @@ const App = {
             const habit = data.habits.find(h => h.id === this.loggingHabitId);
             if (!habit) return;
 
-            const todayStr = Utils.getTodayStr();
+            const targetDateStr = this.loggingDateStr || Utils.getTodayStr();
             if (this.currentLogValue === undefined) {
-                delete habit.tracking[todayStr];
+                delete habit.tracking[targetDateStr];
             } else {
-                habit.tracking[todayStr] = this.currentLogValue;
+                habit.tracking[targetDateStr] = this.currentLogValue;
             }
             DataManager.saveData(data);
             
-            this.switchView(this.mainView);
-            this.renderMainView();
+            const returnView = this.logViewReturnView || this.mainView;
+            this.switchView(returnView);
+            if (returnView === this.mainView) {
+                this.renderMainView();
+            } else if (returnView === this.statsView) {
+                this.updateStatsCalendar();
+                // Also update the rest of the stats page like % success
+                this.openStatsView();
+            }
+            this.logViewReturnView = null; // Reset
         });
 
         // Mass check-in
@@ -963,7 +977,7 @@ const App = {
         this.switchView(this.createView);
     },
 
-    openLogView() {
+    openLogView(dateStr = null) {
         const habits = DataManager.getData().habits;
         if (this.currentHabitIndex >= habits.length) return;
         
@@ -971,8 +985,22 @@ const App = {
         this.loggingHabitId = habit.id;
         this.logHabitName.innerText = habit.name;
         
-        const todayStr = Utils.getTodayStr();
-        const existingVal = habit.tracking[todayStr];
+        this.loggingDateStr = dateStr || Utils.getTodayStr();
+        const existingVal = habit.tracking[this.loggingDateStr];
+        
+        const titleEl = document.getElementById('log-view-title');
+        const saveBtnEl = document.getElementById('btn-save-log');
+        const massCard = document.getElementById('mass-checkin-card');
+        
+        if (dateStr) {
+            titleEl.innerText = `Log for ${dateStr}`;
+            saveBtnEl.innerText = 'Save';
+            massCard.style.display = 'none';
+        } else {
+            titleEl.innerText = 'Log Today';
+            saveBtnEl.innerText = 'Save Today';
+            massCard.style.display = 'block';
+        }
         
         const style = habit.trackingStyle || 'numeric';
         
@@ -1261,11 +1289,29 @@ const App = {
             }
             if (dStr === todayStr) classes.push('cal-today');
 
-            html += `<div class="${classes.join(' ')}">${day}</div>`;
+            if (cellDate <= todayDate) {
+                // Add a class to indicate it's clickable
+                classes.push('cal-loggable');
+                html += `<div class="${classes.join(' ')}" data-date="${dStr}">${day}</div>`;
+            } else {
+                html += `<div class="${classes.join(' ')}">${day}</div>`;
+            }
         }
         html += `</div>`;
         
         this.statsCalendarContainer.innerHTML = html;
+        
+        // Add click listeners to loggable days
+        this.statsCalendarContainer.querySelectorAll('.cal-loggable').forEach(el => {
+            el.style.cursor = 'pointer';
+            el.addEventListener('click', (e) => {
+                const dateStr = e.target.getAttribute('data-date');
+                if (dateStr) {
+                    this.logViewReturnView = this.statsView;
+                    this.openLogView(dateStr);
+                }
+            });
+        });
 
         // Keep the trend line in sync with the displayed month
         if (habit.trackingStyle !== 'bool') {

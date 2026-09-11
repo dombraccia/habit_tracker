@@ -175,7 +175,7 @@ h1, h2, h3, p, span, label, select, input, a,
     max-width: 400px !important;
     margin: 0 auto 16px auto;
     position: relative;
-    padding: 20px 10px !important;
+    padding: 20px 16px !important;
     overflow-y: visible !important;
 }
 

@@ -916,8 +916,19 @@ const App = {
         
         // Populate Summary Card
         const streakData = Utils.calculateStreak(habit);
-        this.summaryCurrentStreak.innerText = streakData.total;
-        this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
+        
+        function formatNumber(num) {
+            let n = Number(num);
+            if (n % 1 === 0) {
+                return `<span style="display: inline-block; width: 40px; text-align: right;">${n}</span><span style="display: inline-block; width: 24px; text-align: left;"></span>`;
+            } else {
+                const parts = n.toFixed(1).split('.');
+                return `<span style="display: inline-block; width: 40px; text-align: right;">${parts[0]}</span><span style="display: inline-block; width: 24px; text-align: left;">.${parts[1]}</span>`;
+            }
+        }
+
+        this.summaryCurrentStreak.innerHTML = formatNumber(streakData.total);
+        this.summaryBestStreak.innerHTML = formatNumber(Utils.calculateBestStreak(habit));
         
         // Calculate Monthly Avg & Last Month
         let lastMonthSum = 0;
@@ -939,10 +950,10 @@ const App = {
             }
         });
         
-        this.summaryLastMonth.innerText = lastMonthSum;
+        this.summaryLastMonth.innerHTML = formatNumber(lastMonthSum);
         const daysLogged = trackingKeys.length;
         const avg = daysLogged > 0 ? (totalSum * 30 / daysLogged) : 0;
-        this.summaryMonthlyAvg.innerText = avg.toFixed(1);
+        this.summaryMonthlyAvg.innerHTML = formatNumber(avg);
 
         this.statsDate = new Date(); // Start at current month
         this.updateStatsCalendar();

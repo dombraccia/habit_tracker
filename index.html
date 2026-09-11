@@ -194,11 +194,23 @@
 
             <!-- SUMMARY CARD -->
             <div class="habit-card auto-card" id="stats-summary-card">
-                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 16px; color: var(--text-primary); font-weight: 500;">
-                    <div>🔥 Current Streak: <span id="summary-current-streak" style="float: right;">0</span></div>
-                    <div>⭐ Best Streak: <span id="summary-best-streak" style="float: right;">0</span></div>
-                    <div>📈 Monthly Average: <span id="summary-monthly-avg" style="float: right;">0.0</span></div>
-                    <div>🔙 Last Month: <span id="summary-last-month" style="float: right;">0</span></div>
+                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px; color: var(--text-primary); font-weight: 500;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>🔥 Current Streak:</span>
+                        <div id="summary-current-streak" style="font-variant-numeric: tabular-nums; white-space: nowrap;">0</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>⭐ Best Streak:</span>
+                        <div id="summary-best-streak" style="font-variant-numeric: tabular-nums; white-space: nowrap;">0</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>📈 N per month:</span>
+                        <div id="summary-monthly-avg" style="font-variant-numeric: tabular-nums; white-space: nowrap;">0</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>🔙 Last Month:</span>
+                        <div id="summary-last-month" style="font-variant-numeric: tabular-nums; white-space: nowrap;">0</div>
+                    </div>
                 </div>
             </div>
 

@@ -1130,7 +1130,7 @@ const App = {
                 dIter.setDate(dIter.getDate() + 1);
             }
             
-            if (boolTotalDays >= 15) {
+            if (boolTotalDays > 0) {
                 const rate = (boolTotalSuccess / boolTotalDays * 100).toFixed(0);
                 valAvg.innerText = `${rate}%`;
                 valAvg.style.fontVariantNumeric = 'normal'; // override tabular for %
@@ -1140,7 +1140,7 @@ const App = {
             
             if (boolLmDays > 0) {
                 const lmRate = (boolLmSuccess / boolLmDays * 100).toFixed(0);
-                valLast.innerText = `${lmRate}% (${boolLmSuccess}/${boolLmDays})`;
+                valLast.innerText = `${lmRate}%`;
                 valLast.style.fontVariantNumeric = 'normal';
             } else {
                 valLast.innerText = '--';

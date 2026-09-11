@@ -300,6 +300,8 @@ const App = {
         // Stats elements
         this.btnBackStats = document.getElementById('btn-back-stats');
         this.statsHabitName = document.getElementById('stats-habit-name');
+        this.btnStatsPrevHabit = document.getElementById('btn-stats-prev-habit');
+        this.btnStatsNextHabit = document.getElementById('btn-stats-next-habit');
         this.statsCalendarContainer = document.getElementById('stats-calendar-container');
         this.btnStatsPrevMonth = document.getElementById('btn-stats-prev-month');
         this.btnStatsNextMonth = document.getElementById('btn-stats-next-month');
@@ -576,6 +578,9 @@ const App = {
             this.updateStatsCalendar();
         });
 
+        this.btnStatsPrevHabit.addEventListener('click', () => this.navigateStats(-1));
+        this.btnStatsNextHabit.addEventListener('click', () => this.navigateStats(1));
+
         // Settings
         this.btnBackSettings.addEventListener('click', () => this.switchView(this.mainView));
         this.btnExport.addEventListener('click', () => {
@@ -762,12 +767,23 @@ const App = {
         // Swipe handling
         let touchstartX = 0;
         let touchendX = 0;
+        
+        // Main view swipe
         this.cardContainer.addEventListener('touchstart', e => {
             touchstartX = e.changedTouches[0].screenX;
         });
         this.cardContainer.addEventListener('touchend', e => {
             touchendX = e.changedTouches[0].screenX;
-            this.handleSwipe();
+            this.handleSwipe(touchstartX, touchendX, () => this.navigate(1), () => this.navigate(-1));
+        });
+
+        // Stats view swipe
+        this.statsView.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        this.statsView.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            this.handleSwipe(touchstartX, touchendX, () => this.navigateStats(1), () => this.navigateStats(-1));
         });
     },
 
@@ -781,10 +797,20 @@ const App = {
         }
     },
 
-    handleSwipe() {
+    navigateStats(dir) {
+        const habits = DataManager.getData().habits;
+        const maxIndex = habits.length - 1; // Don't allow scrolling to "New habit"
+        let newIndex = this.currentHabitIndex + dir;
+        if (newIndex >= 0 && newIndex <= maxIndex) {
+            this.currentHabitIndex = newIndex;
+            this.openStatsView();
+        }
+    },
+
+    handleSwipe(startX, endX, onNext, onPrev) {
         const threshold = 50;
-        if (touchendX < touchstartX - threshold) this.navigate(1); // swipe left = next
-        if (touchendX > touchstartX + threshold) this.navigate(-1); // swipe right = prev
+        if (endX < startX - threshold) onNext(); // swipe left = next
+        if (endX > startX + threshold) onPrev(); // swipe right = prev
     },
 
     applyMassCheckin() {
@@ -988,6 +1014,18 @@ const App = {
         
         const habit = habits[this.currentHabitIndex];
         this.statsHabitName.innerText = habit.name;
+        
+        if (this.currentHabitIndex === 0) {
+            this.btnStatsPrevHabit.classList.add('invisible');
+        } else {
+            this.btnStatsPrevHabit.classList.remove('invisible');
+        }
+        
+        if (this.currentHabitIndex === habits.length - 1) {
+            this.btnStatsNextHabit.classList.add('invisible');
+        } else {
+            this.btnStatsNextHabit.classList.remove('invisible');
+        }
         
         // Populate Summary Card
         const streakData = Utils.calculateStreak(habit);

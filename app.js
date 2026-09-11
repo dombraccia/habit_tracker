@@ -123,9 +123,11 @@ const Utils = {
         if (!hasLog) return false;
 
         if (habit.targetType === 'at_least') {
-            return sum >= habit.targetValue;
+            const target = (habit.trackingStyle === 'bool') ? 1 : habit.targetValue;
+            return sum >= target;
         } else {
-            return sum <= habit.targetValue;
+            const target = (habit.trackingStyle === 'bool') ? 0 : habit.targetValue;
+            return sum <= target;
         }
     },
     calculateStreak(habit) {
@@ -459,6 +461,8 @@ const App = {
                 this.currentLogValue = undefined;
                 if (habit.trackingStyle === 'mixed') {
                     this.logControlsNumeric.classList.add('hidden');
+                } else if (habit.trackingStyle === 'bool') {
+                    this.btnSaveLog.click();
                 }
                 return;
             }
@@ -473,6 +477,8 @@ const App = {
             if (habit.trackingStyle === 'mixed') {
                 this.logControlsNumeric.classList.remove('hidden');
                 this.logValueDisplay.value = this.currentLogValue;
+            } else if (habit.trackingStyle === 'bool') {
+                this.btnSaveLog.click();
             }
         });
 
@@ -487,6 +493,8 @@ const App = {
                 this.currentLogValue = undefined;
                 if (habit.trackingStyle === 'mixed') {
                     this.logControlsNumeric.classList.add('hidden');
+                } else if (habit.trackingStyle === 'bool') {
+                    this.btnSaveLog.click();
                 }
                 return;
             }
@@ -500,6 +508,8 @@ const App = {
             
             if (habit.trackingStyle === 'mixed') {
                 this.logControlsNumeric.classList.add('hidden');
+            } else if (habit.trackingStyle === 'bool') {
+                this.btnSaveLog.click();
             }
         });
 
@@ -1225,16 +1235,16 @@ const App = {
                 
                 if (val !== undefined) {
                     if (habit.targetType === 'at_least') {
-                        // For building habits: green if they did it (or met daily target if it's daily)
                         if (habit.frequency === 'daily') {
-                            isSuccess = val >= habit.targetValue;
+                            const target = (habit.trackingStyle === 'bool') ? 1 : habit.targetValue;
+                            isSuccess = val >= target;
                         } else {
                             isSuccess = val > 0;
                         }
                     } else {
-                        // For stop habits: green if they logged 0 (or met daily target if daily)
                         if (habit.frequency === 'daily') {
-                            isSuccess = val <= habit.targetValue;
+                            const target = (habit.trackingStyle === 'bool') ? 0 : habit.targetValue;
+                            isSuccess = val <= target;
                         } else {
                             isSuccess = val === 0;
                         }

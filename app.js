@@ -1126,18 +1126,22 @@ const App = {
                 
                 dIter.setDate(dIter.getDate() + 1);
             }
-            
+            function formatPct(success, total) {
+                if (total === 0) return '--';
+                const pct = (success / total) * 100;
+                if (pct >= 95 && pct < 100) return pct.toFixed(1) + '%';
+                return pct.toFixed(0) + '%';
+            }
+
             if (boolTotalDays > 0) {
-                const rate = (boolTotalSuccess / boolTotalDays * 100).toFixed(0);
-                valAvg.innerText = `${rate}%`;
+                valAvg.innerText = formatPct(boolTotalSuccess, boolTotalDays);
                 valAvg.style.fontVariantNumeric = 'normal'; // override tabular for %
             } else {
                 valAvg.innerText = '--';
             }
             
             if (boolLmDays > 0) {
-                const lmRate = (boolLmSuccess / boolLmDays * 100).toFixed(0);
-                valLast.innerText = `${lmRate}%`;
+                valLast.innerText = formatPct(boolLmSuccess, boolLmDays);
                 valLast.style.fontVariantNumeric = 'normal';
             } else {
                 valLast.innerText = '--';

@@ -541,13 +541,15 @@ const App = {
         this.btnMassApply.addEventListener('click', () => this.applyMassCheckin());
 
         this.massStartDate.addEventListener('change', () => {
-            if (this.massStartDate.value && !this.massEndDate.value) {
+            this.massStartDateTouched = true;
+            if (!this.massEndDateTouched || this.massEndDate.value < this.massStartDate.value) {
                 this.massEndDate.value = this.massStartDate.value;
             }
         });
         
         this.massEndDate.addEventListener('change', () => {
-            if (this.massEndDate.value && !this.massStartDate.value) {
+            this.massEndDateTouched = true;
+            if (!this.massStartDateTouched || this.massStartDate.value > this.massEndDate.value) {
                 this.massStartDate.value = this.massEndDate.value;
             }
         });
@@ -851,6 +853,12 @@ const App = {
         const style = habit.trackingStyle || 'numeric';
         
         // Reset UI state
+        this.massStartDate.value = "";
+        this.massEndDate.value = "";
+        this.massValue.value = "";
+        this.massStartDateTouched = false;
+        this.massEndDateTouched = false;
+
         this.logControlsBool.classList.add('hidden');
         this.logControlsNumeric.classList.add('hidden');
         this.btnLogYes.classList.remove('active');

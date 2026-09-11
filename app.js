@@ -583,11 +583,28 @@ const App = {
 
         // Settings
         this.btnBackSettings.addEventListener('click', () => this.switchView(this.mainView));
-        this.btnExport.addEventListener('click', () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DataManager.getData()));
+        this.btnExport.addEventListener('click', async () => {
+            const dataStr = JSON.stringify(DataManager.getData());
+            const fileName = "habit_tracker_backup.json";
+            
+            // Try Web Share API first (solves iOS Home Screen PWA block)
+            if (navigator.share && navigator.canShare) {
+                try {
+                    const file = new File([dataStr], fileName, { type: 'application/json' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: 'Habit Tracker Backup' });
+                        return; // Success!
+                    }
+                } catch (err) {
+                    console.warn("Share API failed, falling back to anchor download", err);
+                }
+            }
+            
+            // Fallback for Desktop / browsers that don't support file sharing
+            const dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr);
             const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "habit_tracker_backup.json");
+            downloadAnchorNode.setAttribute("href", dataUri);
+            downloadAnchorNode.setAttribute("download", fileName);
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();

@@ -960,8 +960,12 @@ const App = {
         
         this.summaryLastMonth.innerHTML = formatNumber(lastMonthSum);
         const daysLogged = trackingKeys.length;
-        const avg = daysLogged > 0 ? (totalSum * 30 / daysLogged) : 0;
-        this.summaryMonthlyAvg.innerHTML = formatNumber(avg);
+        if (daysLogged >= 15) {
+            const avg = (totalSum * 30 / daysLogged);
+            this.summaryMonthlyAvg.innerHTML = formatNumber(avg);
+        } else {
+            this.summaryMonthlyAvg.innerHTML = `<span style="display: inline-block; width: 40px; text-align: right;">--</span><span style="display: inline-block; width: 24px; text-align: left;"></span>`;
+        }
 
         this.statsDate = new Date(); // Start at current month
         this.updateStatsCalendar();

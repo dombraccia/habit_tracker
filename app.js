@@ -339,6 +339,10 @@ const App = {
             const isLight = document.body.classList.toggle('light-theme');
             localStorage.setItem('habit_tracker_theme', isLight ? 'light' : 'dark');
             this.updateThemeIcon(isLight);
+            if (!this.statsView.classList.contains('hidden')) {
+                const habit = DataManager.getData().habits[this.currentHabitIndex];
+                if (habit) this.renderGraph(habit);
+            }
         });
 
         // Main view nav
@@ -1084,8 +1088,12 @@ const App = {
             });
         }
         
+        const isLightMode = document.body.classList.contains('light-theme');
+        const axisColor = isLightMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)';
+        const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+
         const tickConfig = {
-            color: 'rgba(255, 255, 255, 0.6)',
+            color: axisColor,
             callback: function(value) {
                 if (Math.floor(value) === value) {
                     return value;
@@ -1106,12 +1114,12 @@ const App = {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: gridColor },
                         ticks: tickConfig
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: 'rgba(255, 255, 255, 0.6)', maxTicksLimit: 6 }
+                        ticks: { color: axisColor, maxTicksLimit: 6 }
                     }
                 },
                 plugins: { legend: { display: false } }
@@ -1136,12 +1144,12 @@ const App = {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: gridColor },
                         ticks: tickConfig
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: 'rgba(255, 255, 255, 0.6)', maxTicksLimit: 6 }
+                        ticks: { color: axisColor, maxTicksLimit: 6 }
                     }
                 },
                 plugins: { legend: { display: false } }

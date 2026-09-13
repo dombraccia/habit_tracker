@@ -459,7 +459,7 @@ const App = {
             if (returnView === this.mainView) {
                 this.renderMainView();
             } else if (returnView === this.statsView) {
-                this.updateStatsCalendar();
+                this.openStatsView(true); // preserve the viewed month
             }
             this.logViewReturnView = null; // Reset
         });
@@ -568,9 +568,8 @@ const App = {
             if (returnView === this.mainView) {
                 this.renderMainView();
             } else if (returnView === this.statsView) {
-                this.updateStatsCalendar();
-                // Also update the rest of the stats page like % success
-                this.openStatsView();
+                // Refresh stats without resetting statsDate — preserve the viewed month
+                this.openStatsView(true);
             }
             this.logViewReturnView = null; // Reset
         });
@@ -1087,7 +1086,7 @@ const App = {
         }
     },
 
-    openStatsView() {
+    openStatsView(preserveMonth = false) {
         const habits = DataManager.getData().habits;
         if (this.currentHabitIndex >= habits.length) return;
         
@@ -1221,7 +1220,9 @@ const App = {
             }
         }
 
-        this.statsDate = new Date(); // Start at current month
+        if (!preserveMonth) {
+            this.statsDate = new Date(); // Start at current month
+        }
         this.updateStatsCalendar();
         
         if (habit.trackingStyle === 'bool') {

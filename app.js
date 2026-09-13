@@ -120,7 +120,9 @@ const Utils = {
             }
         }
 
-        if (!hasLog) return false;
+        // For Stop habits, an unlogged day means you didn't do the thing — implicit success.
+        // For Start habits, an unlogged day means you didn't do the thing — failure.
+        if (!hasLog) return habit.targetType === 'at_most';
 
         if (habit.targetType === 'at_least') {
             const target = (habit.trackingStyle === 'bool') ? 1 : habit.targetValue;
@@ -1160,6 +1162,9 @@ const App = {
                 
                 if (val !== undefined) {
                     isSuccess = (habit.targetType === 'at_least') ? (val > 0) : (val === 0);
+                } else {
+                    // Unlogged Stop habit days = implicit success (didn't do the thing)
+                    isSuccess = (habit.targetType === 'at_most');
                 }
                 
                 boolTotalDays++;
@@ -1289,6 +1294,9 @@ const App = {
                     } else {
                         classes.push('cal-missed');
                     }
+                } else if (habit.targetType === 'at_most' && cellDate >= startDate) {
+                    // Stop habit: unlogged past days are implicit successes — you didn't do the thing
+                    classes.push('cal-done');
                 }
             } else {
                 classes.push('cal-future');

@@ -522,6 +522,10 @@ const App = {
             
             if (habit.trackingStyle === 'mixed') {
                 this.logControlsNumeric.classList.add('hidden');
+                // For Stop mixed habits, "No" is the success case — auto-save like bool
+                if (habit.targetType === 'at_most') {
+                    this.btnSaveLog.click();
+                }
             } else if (habit.trackingStyle === 'bool') {
                 this.btnSaveLog.click();
             }
@@ -597,6 +601,7 @@ const App = {
                 this.chartInstance = null;
             }
             this.switchView(this.mainView);
+            this.renderMainView();
         });
         
         this.btnStatsPrevMonth.addEventListener('click', () => {

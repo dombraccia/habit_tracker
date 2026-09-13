@@ -148,6 +148,8 @@ const Utils = {
             }
         }
 
+        const todayStr = this.getTodayStr();
+
         while (d >= createdDate) {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             
@@ -157,12 +159,12 @@ const Utils = {
                 currentStreak++;
                 d.setDate(d.getDate() - 1);
             } else {
-                // If checking today and it's failed, streak is 0.
-                // If checking yesterday and it failed, streak is just today (if today was success).
-                // Wait, if today is not logged, but yesterday was failed, streak is 0.
-                // Actually, if today is failed, break. If yesterday is failed, break.
-                // So streak just stops here.
-                break;
+                if (dateStr === todayStr && habit.tracking[dateStr] === undefined) {
+                    // Today is unlogged, don't break the streak yet, just skip to checking yesterday
+                    d.setDate(d.getDate() - 1);
+                } else {
+                    break;
+                }
             }
         }
 
@@ -188,6 +190,8 @@ const Utils = {
             }
         }
         
+        const todayStr = this.getTodayStr();
+        
         let iterDate = new Date(createdDate);
         while (iterDate <= d) {
             const dateStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
@@ -199,7 +203,9 @@ const Utils = {
                     bestStreak = currentStreak;
                 }
             } else {
-                currentStreak = 0;
+                if (!(dateStr === todayStr && habit.tracking[dateStr] === undefined)) {
+                    currentStreak = 0;
+                }
             }
             iterDate.setDate(iterDate.getDate() + 1);
         }

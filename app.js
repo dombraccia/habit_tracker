@@ -12,14 +12,41 @@ const DataManager = {
     saveData(data) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     },
-    addHabit(name, type, target, frequency = 'daily', trackingStyle = 'numeric', defaultYes = 1, defaultNo = 0) {
+    // Migrate old habits that used 'frequency' + 'targetValue' to new model
+    migrateData() {
+        const data = this.getData();
+        let changed = false;
+        data.habits.forEach(habit => {
+            if (habit.dailyTarget === undefined) {
+                changed = true;
+                const oldFreq = habit.frequency || 'daily';
+                const oldTarget = habit.targetValue !== undefined ? habit.targetValue : 1;
+                if (habit.targetType === 'at_most' && oldFreq === 'monthly') {
+                    // Stop + monthly: daily threshold is 0, monthly limit is oldTarget
+                    habit.dailyTarget = 0;
+                    habit.monthlyLimit = oldTarget;
+                } else if (habit.targetType === 'at_most') {
+                    // Stop + daily/weekly: daily threshold = oldTarget, no monthly limit
+                    habit.dailyTarget = oldTarget;
+                    habit.monthlyLimit = null;
+                } else {
+                    // Start habit: daily goal = oldTarget
+                    habit.dailyTarget = oldTarget;
+                    habit.monthlyLimit = null;
+                }
+                delete habit.frequency;
+            }
+        });
+        if (changed) this.saveData(data);
+    },
+    addHabit(name, type, dailyTarget, monthlyLimit, trackingStyle = 'numeric', defaultYes = 1, defaultNo = 0) {
         const data = this.getData();
         const newHabit = {
             id: Date.now().toString(),
             name: name,
             targetType: type, // "at_least" or "at_most"
-            targetValue: parseInt(target, 10),
-            frequency: frequency,
+            dailyTarget: parseInt(dailyTarget, 10) || 0,
+            monthlyLimit: monthlyLimit !== '' && monthlyLimit !== null && monthlyLimit !== undefined ? parseInt(monthlyLimit, 10) : null,
             trackingStyle: trackingStyle,
             defaultYes: parseInt(defaultYes, 10),
             defaultNo: parseInt(defaultNo, 10),
@@ -30,17 +57,20 @@ const DataManager = {
         this.saveData(data);
         return newHabit;
     },
-    updateHabit(id, name, type, target, frequency, trackingStyle, defaultYes, defaultNo) {
+    updateHabit(id, name, type, dailyTarget, monthlyLimit, trackingStyle, defaultYes, defaultNo) {
         const data = this.getData();
         const habit = data.habits.find(h => h.id === id);
         if (habit) {
             habit.name = name;
             habit.targetType = type;
-            habit.targetValue = parseInt(target, 10);
-            if (frequency) habit.frequency = frequency;
+            habit.dailyTarget = parseInt(dailyTarget, 10) || 0;
+            habit.monthlyLimit = monthlyLimit !== '' && monthlyLimit !== null && monthlyLimit !== undefined ? parseInt(monthlyLimit, 10) : null;
             if (trackingStyle) habit.trackingStyle = trackingStyle;
             if (defaultYes !== undefined) habit.defaultYes = parseInt(defaultYes, 10);
             if (defaultNo !== undefined) habit.defaultNo = parseInt(defaultNo, 10);
+            // Remove legacy field if present
+            delete habit.frequency;
+            delete habit.targetValue;
             this.saveData(data);
         }
     },
@@ -79,57 +109,20 @@ const Utils = {
         return dates;
     },
     isDaySuccessful(habit, dateStr) {
-        const freq = habit.frequency || (habit.targetType === 'at_least' ? 'daily' : 'monthly');
-        const [year, month, day] = dateStr.split('-');
-        
-        let sum = 0;
-        let hasLog = false;
-        
-        if (freq === 'daily') {
-            if (habit.tracking[dateStr] !== undefined) {
-                hasLog = true;
-                sum = habit.tracking[dateStr];
-            }
-        } else if (freq === 'monthly') {
-            for (let i = 1; i <= parseInt(day, 10); i++) {
-                const d = `${year}-${month}-${String(i).padStart(2, '0')}`;
-                if (habit.tracking[d] !== undefined) {
-                    sum += habit.tracking[d];
-                    hasLog = true;
-                }
-            }
-        } else if (freq === 'weekly') {
-            const currDate = new Date(dateStr + 'T12:00:00');
-            const dayOfWeek = currDate.getDay(); // 0 is Sunday
-            const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-            
-            const startOfWeek = new Date(currDate);
-            startOfWeek.setDate(currDate.getDate() - diffToMonday);
-            
-            let dIter = new Date(startOfWeek);
-            while (dIter <= currDate) {
-                const y = dIter.getFullYear();
-                const m = String(dIter.getMonth() + 1).padStart(2, '0');
-                const d = String(dIter.getDate()).padStart(2, '0');
-                const checkStr = `${y}-${m}-${d}`;
-                if (habit.tracking[checkStr] !== undefined) {
-                    sum += habit.tracking[checkStr];
-                    hasLog = true;
-                }
-                dIter.setDate(dIter.getDate() + 1);
-            }
-        }
+        const val = habit.tracking[dateStr];
+        const hasLog = val !== undefined;
 
         // For Stop habits, an unlogged day means you didn't do the thing — implicit success.
-        // For Start habits, an unlogged day means you didn't do the thing — failure.
+        // For Start habits, an unlogged day means you didn't log — failure.
         if (!hasLog) return habit.targetType === 'at_most';
 
+        const dailyTarget = habit.dailyTarget !== undefined ? habit.dailyTarget
+            : (habit.trackingStyle === 'bool' ? (habit.targetType === 'at_least' ? 1 : 0) : (habit.targetValue || 0));
+
         if (habit.targetType === 'at_least') {
-            const target = (habit.trackingStyle === 'bool') ? 1 : habit.targetValue;
-            return sum >= target;
+            return val >= dailyTarget;
         } else {
-            const target = (habit.trackingStyle === 'bool') ? 0 : habit.targetValue;
-            return sum <= target;
+            return val <= dailyTarget;
         }
     },
     calculateStreak(habit) {
@@ -242,6 +235,9 @@ const App = {
             this.updateThemeIcon(false);
         }
 
+        // Migrate old habit data model to new one
+        DataManager.migrateData();
+
         this.renderMainView();
     },
     
@@ -273,7 +269,8 @@ const App = {
         this.btnBackCreate = document.getElementById('btn-back-create');
         this.habitNameInput = document.getElementById('habit-name');
         this.habitTypeSelect = document.getElementById('habit-type');
-        this.habitFrequencySelect = document.getElementById('habit-frequency');
+        this.habitMonthlyLimitGroup = document.getElementById('monthly-limit-group');
+        this.habitMonthlyLimit = document.getElementById('habit-monthly-limit');
         this.habitTrackingStyle = document.getElementById('habit-tracking-style');
         this.mixedDefaultsGroup = document.getElementById('mixed-defaults-group');
         this.habitDefaultYes = document.getElementById('habit-default-yes');
@@ -326,6 +323,8 @@ const App = {
         this.summaryBestStreak = document.getElementById('summary-best-streak');
         this.summaryMonthlyAvg = document.getElementById('summary-monthly-avg');
         this.summaryLastMonth = document.getElementById('summary-last-month');
+        this.summaryMonthLimitRow = document.getElementById('summary-month-limit-row');
+        this.summaryMonthLimitVal = document.getElementById('summary-month-limit-val');
         this.statsPlotCards = document.querySelectorAll('.stats-plot-card');
 
         // Settings elements
@@ -392,13 +391,15 @@ const App = {
 
         this.habitTypeSelect.addEventListener('change', () => {
             if (this.habitTypeSelect.value === 'at_least') {
-                this.habitFrequencySelect.value = 'daily';
-                this.habitTargetLabel.innerText = "Goal";
-                if (this.editingHabitId === null) this.habitTargetInput.value = '1';
+                if (this.editingHabitId === null) {
+                    this.habitTargetInput.value = '1';
+                    this.habitMonthlyLimit.value = '';
+                }
             } else {
-                this.habitFrequencySelect.value = 'monthly';
-                this.habitTargetLabel.innerText = "Limit";
-                if (this.editingHabitId === null) this.habitTargetInput.value = '10';
+                if (this.editingHabitId === null) {
+                    this.habitTargetInput.value = '0';
+                    this.habitMonthlyLimit.value = '10';
+                }
             }
         });
 
@@ -425,17 +426,17 @@ const App = {
         this.btnSaveHabit.addEventListener('click', () => {
             const name = this.habitNameInput.value.trim();
             const type = this.habitTypeSelect.value;
-            const target = this.habitTargetInput.value;
-            const frequency = this.habitFrequencySelect.value;
+            const dailyTarget = this.habitTargetInput.value;
+            const monthlyLimit = this.habitMonthlyLimit.value;
             const trackingStyle = this.habitTrackingStyle.value;
             const defYes = this.habitDefaultYes.value;
             const defNo = this.habitDefaultNo.value;
             
             if (name) {
                 if (this.editingHabitId) {
-                    DataManager.updateHabit(this.editingHabitId, name, type, target, frequency, trackingStyle, defYes, defNo);
+                    DataManager.updateHabit(this.editingHabitId, name, type, dailyTarget, monthlyLimit, trackingStyle, defYes, defNo);
                 } else {
-                    DataManager.addHabit(name, type, target, frequency, trackingStyle, defYes, defNo);
+                    DataManager.addHabit(name, type, dailyTarget, monthlyLimit, trackingStyle, defYes, defNo);
                     this.currentHabitIndex = DataManager.getData().habits.length - 1;
                 }
                 this.switchView(this.mainView);
@@ -953,6 +954,7 @@ const App = {
         this.habitDefaultYes.value = '1';
         this.habitDefaultNo.value = '0';
         this.habitTargetInput.value = '1';
+        this.habitMonthlyLimit.value = '';
         this.btnDeleteHabit.classList.add('hidden');
         this.switchView(this.createView);
     },
@@ -972,10 +974,6 @@ const App = {
         this.habitTypeSelect.value = habit.targetType;
         this.habitTypeSelect.dispatchEvent(new Event('change'));
         
-        if (habit.frequency) {
-            this.habitFrequencySelect.value = habit.frequency;
-        }
-        
         const style = habit.trackingStyle || 'numeric';
         this.habitTrackingStyle.value = style;
         this.habitTrackingStyle.dispatchEvent(new Event('change'));
@@ -983,7 +981,8 @@ const App = {
         this.habitDefaultYes.value = habit.defaultYes !== undefined ? habit.defaultYes : 1;
         this.habitDefaultNo.value = habit.defaultNo !== undefined ? habit.defaultNo : 0;
         
-        this.habitTargetInput.value = habit.targetValue;
+        this.habitTargetInput.value = habit.dailyTarget !== undefined ? habit.dailyTarget : 0;
+        this.habitMonthlyLimit.value = habit.monthlyLimit !== null && habit.monthlyLimit !== undefined ? habit.monthlyLimit : '';
         this.btnDeleteHabit.classList.remove('hidden');
         
         this.switchView(this.createView);
@@ -1111,6 +1110,7 @@ const App = {
 
         // Calculate Monthly Avg & Last Month
         let lastMonthSum = 0;
+        let thisMonthSum = 0;
         let totalSum = 0;
         
         const today = new Date();
@@ -1122,12 +1122,17 @@ const App = {
         const lmMonthStr = String(lastMonthDate.getMonth() + 1).padStart(2, '0');
         const lmPrefix = `${lmYear}-${lmMonthStr}`;
 
+        const tmPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        
         const trackingKeys = Object.keys(habit.tracking);
         trackingKeys.forEach(dateStr => {
             const val = habit.tracking[dateStr];
             totalSum += val;
             if (dateStr.startsWith(lmPrefix)) {
                 lastMonthSum += val;
+            }
+            if (dateStr.startsWith(tmPrefix)) {
+                thisMonthSum += val;
             }
         });
         
@@ -1219,6 +1224,19 @@ const App = {
                 valAvg.innerText = '--';
             }
         }
+        
+        // Month Total (Limit) row
+        if (habit.monthlyLimit !== null && habit.monthlyLimit !== undefined) {
+            this.summaryMonthLimitRow.classList.remove('hidden');
+            this.summaryMonthLimitVal.innerText = `${thisMonthSum} / ${habit.monthlyLimit}`;
+            if (thisMonthSum > habit.monthlyLimit) {
+                this.summaryMonthLimitVal.style.color = 'var(--text-error)';
+            } else {
+                this.summaryMonthLimitVal.style.color = 'var(--text-primary)';
+            }
+        } else {
+            this.summaryMonthLimitRow.classList.add('hidden');
+        }
 
         if (!preserveMonth) {
             this.statsDate = new Date(); // Start at current month
@@ -1279,20 +1297,12 @@ const App = {
                 const val = habit.tracking[dStr];
                 
                 if (val !== undefined) {
+                    const dailyTarget = habit.dailyTarget !== undefined ? habit.dailyTarget : 0;
+                    
                     if (habit.targetType === 'at_least') {
-                        if (habit.frequency === 'daily') {
-                            const target = (habit.trackingStyle === 'bool') ? 1 : habit.targetValue;
-                            isSuccess = val >= target;
-                        } else {
-                            isSuccess = val > 0;
-                        }
+                        isSuccess = val >= dailyTarget;
                     } else {
-                        if (habit.frequency === 'daily') {
-                            const target = (habit.trackingStyle === 'bool') ? 0 : habit.targetValue;
-                            isSuccess = val <= target;
-                        } else {
-                            isSuccess = val === 0;
-                        }
+                        isSuccess = val <= dailyTarget;
                     }
                     
                     if (isSuccess) {
@@ -1372,8 +1382,8 @@ const App = {
             dailyData.push(val);
             cumulativeData.push(runningSum);
             
-            if (habit.targetType === 'at_most') {
-                limitData.push(habit.targetValue);
+            if (habit.monthlyLimit !== null && habit.monthlyLimit !== undefined) {
+                limitData.push(habit.monthlyLimit);
             }
         }
 
@@ -1391,7 +1401,7 @@ const App = {
             pointBackgroundColor: lineColor
         }];
         
-        if (habit.targetType === 'at_most') {
+        if (habit.monthlyLimit !== null && habit.monthlyLimit !== undefined) {
             lineDatasets.push({
                 label: 'Limit',
                 data: limitData,

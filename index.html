@@ -81,17 +81,6 @@
                         </select>
                     </div>
                     <div class="setup-group" style="flex: 1;">
-                        <label for="habit-frequency">Frequency</label>
-                        <select id="habit-frequency">
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <div class="setup-group" style="flex: 1;">
                         <label for="habit-tracking-style">Tracking Style</label>
                         <select id="habit-tracking-style">
                             <option value="bool">yes/no</option>
@@ -99,9 +88,16 @@
                             <option value="mixed">yes/no + value</option>
                         </select>
                     </div>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
                     <div class="setup-group" style="flex: 1;">
-                        <label for="habit-target" id="habit-target-label">Limit</label>
+                        <label for="habit-target" id="habit-target-label">Daily Goal</label>
                         <input type="number" id="habit-target" value="1" min="0">
+                    </div>
+                    <div class="setup-group" style="flex: 1;" id="monthly-limit-group">
+                        <label for="habit-monthly-limit">Monthly Limit <span style="font-weight:400; color: var(--text-tertiary);">(optional)</span></label>
+                        <input type="number" id="habit-monthly-limit" placeholder="e.g. 10" min="0">
                     </div>
                 </div>
             </div>
@@ -215,6 +211,10 @@
                         <span id="summary-last-label">🔙 Last Month:</span>
                         <div id="summary-last-month" style="font-variant-numeric: tabular-nums; white-space: nowrap;">0</div>
                     </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;" id="summary-month-limit-row" class="hidden">
+                        <span id="summary-month-limit-label">📊 Month Total:</span>
+                        <div id="summary-month-limit-val" style="font-variant-numeric: tabular-nums; white-space: nowrap;">0</div>
+                    </div>
                 </div>
             </div>
 
@@ -319,7 +319,7 @@
                 </div>
             </div>
             <div style="text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 20px;">
-                Habit Tracker v1.8.40
+                Habit Tracker v1.8.41
             </div>
         </div>
     </div>

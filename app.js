@@ -94,27 +94,42 @@ const DataManager = {
 
 // --- Utilities ---
 const Utils = {
-    getTodayStr() {
-        const d = new Date();
+    // Format a Date as local "YYYY-MM-DD"
+    formatDate(d) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     },
-    getPastDates(daysCount) {
-        const dates = [];
-        const today = new Date();
-        for (let i = daysCount - 1; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    getTodayStr() {
+        return this.formatDate(new Date());
+    },
+    // Noon avoids DST edge cases when stepping day-by-day
+    parseDate(dateStr) {
+        return new Date(dateStr + 'T12:00:00');
+    },
+    escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+    // Earliest of the creation date and the earliest tracked date (backfilled logs can predate creation)
+    getHabitStartDate(habit) {
+        let startDate = this.parseDate(habit.created.split('T')[0]);
+        const trackedDates = Object.keys(habit.tracking);
+        if (trackedDates.length > 0) {
+            const earliestTracked = this.parseDate(trackedDates.sort()[0]);
+            if (earliestTracked < startDate) startDate = earliestTracked;
         }
-        return dates;
+        return startDate;
     },
     isDaySuccessful(habit, dateStr) {
         const val = habit.tracking[dateStr];
         const hasLog = val !== undefined;
 
-        // For Stop habits, an unlogged day means you didn't do the thing — implicit success.
-        // For Start habits, an unlogged day means you didn't log — failure.
-        if (!hasLog) return habit.targetType === 'at_most';
+        // If a day is unlogged, it is not considered successful for streak calculation.
+        // Streaks require explicit logging.
+        if (!hasLog) return false;
 
         const dailyTarget = habit.dailyTarget !== undefined ? habit.dailyTarget
             : (habit.trackingStyle === 'bool' ? (habit.targetType === 'at_least' ? 1 : 0) : (habit.targetValue || 0));
@@ -128,39 +143,22 @@ const Utils = {
     calculateStreak(habit) {
         if (!habit) return { years: 0, months: 0, days: 0, total: 0 };
         
-        // Find all days tracked. Wait, for "at_most", unlogged days are successful!
-        // So a streak is from the start of the habit to today.
-        // We iterate backwards from today.
+        // Iterate backwards from today. Only explicitly logged, successful days count.
+        // An unlogged *today* doesn't break the streak (the day isn't over yet).
         let currentStreak = 0;
-        let d = new Date(this.getTodayStr() + 'T12:00:00');
-        let createdDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
-        
-        const trackedDates = Object.keys(habit.tracking);
-        if (trackedDates.length > 0) {
-            const earliestTracked = new Date(trackedDates.sort()[0] + 'T12:00:00');
-            if (earliestTracked < createdDate) {
-                createdDate = earliestTracked;
-            }
-        }
-
         const todayStr = this.getTodayStr();
+        let d = this.parseDate(todayStr);
+        const createdDate = this.getHabitStartDate(habit);
 
         while (d >= createdDate) {
-            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const dateStr = this.formatDate(d);
             
-            let success = this.isDaySuccessful(habit, dateStr);
-            
-            if (success) {
+            if (this.isDaySuccessful(habit, dateStr)) {
                 currentStreak++;
-                d.setDate(d.getDate() - 1);
-            } else {
-                if (dateStr === todayStr && habit.tracking[dateStr] === undefined) {
-                    // Today is unlogged, don't break the streak yet, just skip to checking yesterday
-                    d.setDate(d.getDate() - 1);
-                } else {
-                    break;
-                }
+            } else if (!(dateStr === todayStr && habit.tracking[dateStr] === undefined)) {
+                break;
             }
+            d.setDate(d.getDate() - 1);
         }
 
         let years = Math.floor(currentStreak / 365);
@@ -174,33 +172,20 @@ const Utils = {
         if (!habit) return 0;
         let bestStreak = 0;
         let currentStreak = 0;
-        let d = new Date(this.getTodayStr() + 'T12:00:00');
-        let createdDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
-        
-        const trackedDates = Object.keys(habit.tracking);
-        if (trackedDates.length > 0) {
-            const earliestTracked = new Date(trackedDates.sort()[0] + 'T12:00:00');
-            if (earliestTracked < createdDate) {
-                createdDate = earliestTracked;
-            }
-        }
-        
         const todayStr = this.getTodayStr();
+        const d = this.parseDate(todayStr);
         
-        let iterDate = new Date(createdDate);
+        let iterDate = this.getHabitStartDate(habit);
         while (iterDate <= d) {
-            const dateStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
-            let success = this.isDaySuccessful(habit, dateStr);
+            const dateStr = this.formatDate(iterDate);
 
-            if (success) {
+            if (this.isDaySuccessful(habit, dateStr)) {
                 currentStreak++;
                 if (currentStreak > bestStreak) {
                     bestStreak = currentStreak;
                 }
-            } else {
-                if (!(dateStr === todayStr && habit.tracking[dateStr] === undefined)) {
-                    currentStreak = 0;
-                }
+            } else if (!(dateStr === todayStr && habit.tracking[dateStr] === undefined)) {
+                currentStreak = 0;
             }
             iterDate.setDate(iterDate.getDate() + 1);
         }
@@ -262,7 +247,6 @@ const App = {
         this.paginationDots = document.getElementById('pagination-dots');
 
         // Create/Edit elements
-        this.createView = document.getElementById('create-view');
         this.createNameCard = document.getElementById('create-name-card');
         this.createNameDisplay = document.getElementById('create-name-display');
         this.createNameHint = document.getElementById('create-name-hint');
@@ -354,7 +338,7 @@ const App = {
             this.updateThemeIcon(isLight);
             if (!this.statsView.classList.contains('hidden')) {
                 const habit = DataManager.getData().habits[this.currentHabitIndex];
-                if (habit) this.renderGraph(habit);
+                if (habit && habit.trackingStyle !== 'bool') this.renderGraph(habit);
             }
         });
 
@@ -412,13 +396,7 @@ const App = {
         });
 
         this.btnBackCreate.addEventListener('click', () => {
-            if (this.editingHabitId === null) {
-                // If cancelling creation, make sure we go back correctly
-                const maxIndex = DataManager.getData().habits.length;
-                if(this.currentHabitIndex > maxIndex) {
-                    this.currentHabitIndex = maxIndex;
-                }
-            }
+            // renderMainView clamps currentHabitIndex to a valid range
             this.switchView(this.mainView);
             this.renderMainView();
         });
@@ -605,11 +583,13 @@ const App = {
         });
         
         this.btnStatsPrevMonth.addEventListener('click', () => {
+            this.statsDate.setDate(1); // avoid day overflow (e.g. Oct 31 -> "Sep 31" -> Oct 1)
             this.statsDate.setMonth(this.statsDate.getMonth() - 1);
             this.updateStatsCalendar();
         });
         
         this.btnStatsNextMonth.addEventListener('click', () => {
+            this.statsDate.setDate(1);
             this.statsDate.setMonth(this.statsDate.getMonth() + 1);
             this.updateStatsCalendar();
         });
@@ -649,23 +629,29 @@ const App = {
         this.btnImportTrigger.addEventListener('click', () => this.fileImport.click());
         this.fileImport.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        if (data && data.habits) {
-                            DataManager.saveData(data);
-                            this.currentHabitIndex = 0;
-                            this.renderMainView();
-                            alert("Data imported successfully!");
-                        }
-                    } catch(err) {
+            // Reset so selecting the same file again still fires 'change'
+            this.fileImport.value = '';
+            if (!file) return;
+            if (!confirm("This will overwrite your current local data with the imported file. Are you sure?")) return;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (data && Array.isArray(data.habits)) {
+                        DataManager.saveData(data);
+                        DataManager.migrateData();
+                        this.currentHabitIndex = 0;
+                        this.renderMainView();
+                        alert("Data imported successfully!");
+                    } else {
                         alert("Invalid file format.");
                     }
-                };
-                reader.readAsText(file);
-            }
+                } catch(err) {
+                    alert("Invalid file format.");
+                }
+            };
+            reader.readAsText(file);
         });
 
         // Google Drive Sync
@@ -714,8 +700,9 @@ const App = {
                 const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.habits) {
+                    if (data && Array.isArray(data.habits)) {
                         DataManager.saveData(data);
+                        DataManager.migrateData();
                         this.currentHabitIndex = 0;
                         this.renderMainView();
                         alert("Data restored successfully!");
@@ -779,7 +766,7 @@ const App = {
                     this.reorderCurrentCount++;
                     this.reorderOrderMap[habit.id] = this.reorderCurrentCount;
                     orderDiv.innerText = this.reorderCurrentCount;
-                    orderDiv.style.color = '#fff';
+                    orderDiv.style.color = 'var(--text-primary)';
                     item.style.background = 'var(--surface-hover)';
                 });
                 
@@ -885,7 +872,7 @@ const App = {
 
         const value = parseInt(valStr, 10);
         if (isNaN(value) || value < 0) {
-            alert("Value must be a valid positive number.");
+            alert("Value must be a number of 0 or more.");
             return;
         }
 
@@ -893,8 +880,8 @@ const App = {
         const resolvedStart = start || end;
         const resolvedEnd = end || start;
 
-        let startDate = new Date(resolvedStart + 'T12:00:00');
-        let endDate = new Date(resolvedEnd + 'T12:00:00');
+        let startDate = Utils.parseDate(resolvedStart);
+        let endDate = Utils.parseDate(resolvedEnd);
 
         if (startDate > endDate) {
             alert("Start date must be before or equal to end date.");
@@ -907,12 +894,7 @@ const App = {
 
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
-            const yyyy = currentDate.getFullYear();
-            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(currentDate.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}-${mm}-${dd}`;
-            
-            habit.tracking[dateStr] = value;
+            habit.tracking[Utils.formatDate(currentDate)] = value;
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
@@ -1043,7 +1025,8 @@ const App = {
                 if (existingVal > 0) this.btnLogYes.classList.add('active');
                 else this.btnLogNo.classList.add('active');
             } else {
-                this.currentLogValue = 0; // Default undefined state is not selected, but default value 0
+                // Nothing selected — Save must not silently log "No"
+                this.currentLogValue = undefined;
             }
         } else if (style === 'numeric') {
             this.logControlsNumeric.classList.remove('hidden');
@@ -1062,9 +1045,10 @@ const App = {
                     this.logControlsNumeric.classList.remove('hidden');
                 }
             } else {
-                this.currentLogValue = 0; // Will be overridden when they click
+                // Nothing selected — Save must not silently log a value
+                this.currentLogValue = undefined;
             }
-            this.logValueDisplay.value = this.currentLogValue;
+            this.logValueDisplay.value = this.currentLogValue !== undefined ? this.currentLogValue : 0;
         }
         
         this.updateLogBoolStyles();
@@ -1106,7 +1090,8 @@ const App = {
         
         // Populate Summary Card
         const streakData = Utils.calculateStreak(habit);
-
+        this.summaryCurrentStreak.innerText = streakData.total;
+        this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
 
         // Calculate Monthly Avg & Last Month
         let lastMonthSum = 0;
@@ -1115,14 +1100,11 @@ const App = {
         
         const today = new Date();
         const todayStr = Utils.getTodayStr();
-        const todayDate = new Date(todayStr + 'T12:00:00');
+        const todayDate = Utils.parseDate(todayStr);
         
         const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const lmYear = lastMonthDate.getFullYear();
-        const lmMonthStr = String(lastMonthDate.getMonth() + 1).padStart(2, '0');
-        const lmPrefix = `${lmYear}-${lmMonthStr}`;
-
-        const tmPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const lmPrefix = Utils.formatDate(lastMonthDate).slice(0, 7);
+        const tmPrefix = todayStr.slice(0, 7);
         
         const trackingKeys = Object.keys(habit.tracking);
         trackingKeys.forEach(dateStr => {
@@ -1137,44 +1119,27 @@ const App = {
         });
         
         const lblAvg = document.getElementById('summary-avg-label');
-        const lblLast = document.getElementById('summary-last-label');
-        const valAvg = document.getElementById('summary-monthly-avg');
-        const valLast = document.getElementById('summary-last-month');
+        const valAvg = this.summaryMonthlyAvg;
+        const valLast = this.summaryLastMonth;
         
         if (habit.trackingStyle === 'bool') {
-            this.summaryCurrentStreak.innerText = streakData.total;
-            this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
-            
             lblAvg.innerText = '📈 % Success:';
             // Last month label stays the same, we just format the value
-            
-            let startDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
-            if (trackingKeys.length > 0) {
-                const earliestTracked = new Date(trackingKeys.sort()[0] + 'T12:00:00');
-                if (earliestTracked < startDate) startDate = earliestTracked;
-            }
             
             let boolTotalDays = 0;
             let boolTotalSuccess = 0;
             let boolLmDays = 0;
             let boolLmSuccess = 0;
             
-            let dIter = new Date(startDate);
+            let dIter = Utils.getHabitStartDate(habit);
             while (dIter <= todayDate) {
-                const y = dIter.getFullYear();
-                const m = String(dIter.getMonth() + 1).padStart(2, '0');
-                const d = String(dIter.getDate()).padStart(2, '0');
-                const dStr = `${y}-${m}-${d}`;
-                
-                const val = habit.tracking[dStr];
-                let isSuccess = false;
-                
-                if (val !== undefined) {
-                    isSuccess = (habit.targetType === 'at_least') ? (val > 0) : (val === 0);
-                } else {
-                    // Unlogged Stop habit days = implicit success (didn't do the thing)
-                    isSuccess = (habit.targetType === 'at_most');
-                }
+                const dStr = Utils.formatDate(dIter);
+                dIter.setDate(dIter.getDate() + 1);
+
+                // Today isn't over yet — don't count it until it's logged (same rule as streaks)
+                if (dStr === todayStr && habit.tracking[dStr] === undefined) continue;
+
+                const isSuccess = Utils.isDaySuccessful(habit, dStr);
                 
                 boolTotalDays++;
                 if (isSuccess) boolTotalSuccess++;
@@ -1183,8 +1148,6 @@ const App = {
                     boolLmDays++;
                     if (isSuccess) boolLmSuccess++;
                 }
-                
-                dIter.setDate(dIter.getDate() + 1);
             }
             function formatPct(success, total) {
                 if (total === 0) return '--';
@@ -1193,24 +1156,12 @@ const App = {
                 return pct.toFixed(0) + '%';
             }
 
-            if (boolTotalDays > 0) {
-                valAvg.innerText = formatPct(boolTotalSuccess, boolTotalDays);
-                valAvg.style.fontVariantNumeric = 'normal'; // override tabular for %
-            } else {
-                valAvg.innerText = '--';
-            }
-            
-            if (boolLmDays > 0) {
-                valLast.innerText = formatPct(boolLmSuccess, boolLmDays);
-                valLast.style.fontVariantNumeric = 'normal';
-            } else {
-                valLast.innerText = '--';
-            }
+            valAvg.innerText = formatPct(boolTotalSuccess, boolTotalDays);
+            valAvg.style.fontVariantNumeric = 'normal'; // override tabular for %
+            valLast.innerText = formatPct(boolLmSuccess, boolLmDays);
+            valLast.style.fontVariantNumeric = 'normal';
             
         } else {
-            this.summaryCurrentStreak.innerText = streakData.total;
-            this.summaryBestStreak.innerText = Utils.calculateBestStreak(habit);
-
             lblAvg.innerText = '📈 N per month:';
             valAvg.style.fontVariantNumeric = 'tabular-nums';
             valLast.style.fontVariantNumeric = 'tabular-nums';
@@ -1230,7 +1181,7 @@ const App = {
             this.summaryMonthLimitRow.classList.remove('hidden');
             this.summaryMonthLimitVal.innerText = `${thisMonthSum} / ${habit.monthlyLimit}`;
             if (thisMonthSum > habit.monthlyLimit) {
-                this.summaryMonthLimitVal.style.color = 'var(--text-error)';
+                this.summaryMonthLimitVal.style.color = 'var(--error)';
             } else {
                 this.summaryMonthLimitVal.style.color = 'var(--text-primary)';
             }
@@ -1275,44 +1226,17 @@ const App = {
             html += `<div class="cal-cell empty"></div>`;
         }
 
+        const todayDate = Utils.parseDate(todayStr);
+
         for (let day = 1; day <= daysInMonth; day++) {
             const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             let classes = ['cal-cell'];
             
-            const cellDate = new Date(dStr + 'T12:00:00');
-            const todayDate = new Date(todayStr + 'T12:00:00');
-            
-            // Determine start date to not color days before habit existed
-            let startDate = new Date(habit.created.split('T')[0] + 'T12:00:00');
-            const trackedDates = Object.keys(habit.tracking);
-            if (trackedDates.length > 0) {
-                const earliestTracked = new Date(trackedDates.sort()[0] + 'T12:00:00');
-                if (earliestTracked < startDate) {
-                    startDate = earliestTracked;
-                }
-            }
+            const cellDate = Utils.parseDate(dStr);
 
             if (cellDate <= todayDate) {
-                let isSuccess = false;
-                const val = habit.tracking[dStr];
-                
-                if (val !== undefined) {
-                    const dailyTarget = habit.dailyTarget !== undefined ? habit.dailyTarget : 0;
-                    
-                    if (habit.targetType === 'at_least') {
-                        isSuccess = val >= dailyTarget;
-                    } else {
-                        isSuccess = val <= dailyTarget;
-                    }
-                    
-                    if (isSuccess) {
-                        classes.push('cal-done');
-                    } else {
-                        classes.push('cal-missed');
-                    }
-                } else if (habit.targetType === 'at_most' && cellDate >= startDate) {
-                    // Stop habit: unlogged past days are implicit successes — you didn't do the thing
-                    classes.push('cal-done');
+                if (habit.tracking[dStr] !== undefined) {
+                    classes.push(Utils.isDaySuccessful(habit, dStr) ? 'cal-done' : 'cal-missed');
                 }
             } else {
                 classes.push('cal-future');
@@ -1335,7 +1259,7 @@ const App = {
         this.statsCalendarContainer.querySelectorAll('.cal-loggable').forEach(el => {
             el.style.cursor = 'pointer';
             el.addEventListener('click', (e) => {
-                const dateStr = e.target.getAttribute('data-date');
+                const dateStr = e.currentTarget.dataset.date;
                 if (dateStr) {
                     this.logViewReturnView = this.statsView;
                     this.openLogView(dateStr);
@@ -1548,25 +1472,23 @@ const App = {
         const todayStr = Utils.getTodayStr();
         const todayTracked = habit.tracking[todayStr] !== undefined;
 
+        const plural = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'}`;
         let streakParts = [];
-        if (streak.years > 0) streakParts.push(`${streak.years} years`);
-        if (streak.months > 0) streakParts.push(`${streak.months} months`);
-        if (streak.days > 0 || streak.total === 0) streakParts.push(`${streak.days} days`);
+        if (streak.years > 0) streakParts.push(plural(streak.years, 'year'));
+        if (streak.months > 0) streakParts.push(plural(streak.months, 'month'));
+        if (streak.days > 0 || streak.total === 0) streakParts.push(plural(streak.days, 'day'));
         let streakText = streakParts.join(', ');
 
         const card = document.createElement('div');
         card.className = 'habit-card';
         card.style.cursor = 'pointer';
         card.innerHTML = `
-            <div class="habit-title">${habit.name}</div>
+            <div class="habit-title">${Utils.escapeHTML(habit.name)}</div>
             <div class="habit-streak" style="font-size: 20px;">${streakText}</div>
             ${todayTracked ? `<div style="margin-top: 20px; font-size: 14px; color: var(--success);">Logged today: ${habit.tracking[todayStr]}</div>` : `<div style="margin-top: 20px; font-size: 14px; color: var(--text-tertiary);">Tap to log today</div>`}
         `;
         card.addEventListener('click', () => this.openLogView());
         this.cardContainer.appendChild(card);
-
-        this.sessionControls.classList.remove('invisible');
-        this.sessionControls.style.display = 'flex';
         
         this.renderPaginationDots(maxIndex + 1, this.currentHabitIndex);
     },
